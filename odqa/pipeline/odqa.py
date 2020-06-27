@@ -26,13 +26,13 @@ class ODQA:
         return self.db.get_doc_text(doc_id)
 
     def process_query(self, query, topn=5, ndocs=10):
-        ranked = self.retriever.closest_docs(query, k=ndocs)
-
+        ranked = [self.retriever.closest_docs(query, k=ndocs)]
         docids, docscores = zip(*ranked)
         # remove duplicate duplicates
         flat_docids = list({d for dids in docids for d in dids})
         doc_texts = map(self.fetch_text, flat_docids)
+        doc_texts = [text[0] for text in doc_texts]
 
-        batch = tuple((query, context) for context in doc_texts)
+        batch = (query, doc_texts)
         predictions = self.reader.predict(batch, topn=topn)
         return predictions
