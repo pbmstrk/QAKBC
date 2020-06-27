@@ -36,6 +36,7 @@ class BatchReader:
     def todevice(self, encoding):
         for key in encoding:
             encoding[key] = encoding[key].to(self.device)
+        return encoding
 
     def process_batch(self, batch):
 
