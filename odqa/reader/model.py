@@ -40,7 +40,7 @@ class BatchReader:
     def process_batch(self, batch):
 
         self.encoding = self.encode_batch(batch)
-        self.encoding = self.encoding.to(self.device)
+        self.encoding = self.todevice(self.encoding)
 
         start_scores, end_scores = self.model(**self.encoding)
 
