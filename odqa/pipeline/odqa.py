@@ -9,10 +9,6 @@ console = logging.StreamHandler()
 console.setFormatter(fmt)
 logger.addHandler(console)
 
-
-def fetch_text(doc_id)
-
-
 class ODQA:
 
     def __init__(self, reader_model, retriever_path, doc_db_path,  device):
