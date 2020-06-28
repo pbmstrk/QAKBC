@@ -29,7 +29,7 @@ class BatchReader:
 
         query, contexts = batch
         inputs = [(query, context) for context in contexts]
-        encoding = self.tokenizer.batch_encode_plus(inputs, pad_to_max_length=True,
+        encoding = self.tokenizer.batch_encode_plus(inputs, max_length=510, pad_to_max_length=True,
                                     return_tensors="pt")
         return encoding
 
@@ -42,15 +42,15 @@ class BatchReader:
 
         self.encoding = self.encode_batch(batch)
         self.encoding = self.todevice(self.encoding)
-
-        start_scores, end_scores = self.model(**self.encoding)
+        with torch.no_grad():
+            start_scores, end_scores = self.model(**self.encoding)
 
         return start_scores, end_scores
 
     def get_span(self, inds):
 
         token_ids = [self.encoding['input_ids'][ind[0]][ind[1]:ind[2]+1] for ind in inds]
-        spans = [" ".join(self.tokenizer.convert_ids_to_tokens(token_id, skip_special_tokens=True)) for token_id in token_ids]
+        spans = [self.tokenizer.convert_tokens_to_string(self.tokenizer.convert_ids_to_tokens(token_id, skip_special_tokens=True)) for token_id in token_ids]
         return spans
 
     def predict(self, batch, topn=5):
@@ -64,12 +64,13 @@ class BatchReader:
         end_scores = end_scores.view(-1).softmax(0).view(*end_scores.shape)
 
         scores = np.zeros((batch_size, token_number, token_number))
-
+        
+        max_len = 15
         for i in range(batch_size):
             # outer product of scores
             scorespair = torch.ger(start_scores[i], end_scores[i])
             # zero out negative length and over-length span scores
-            scorespair.triu_().tril_(token_number-1)
+            scorespair.triu_().tril_(max_len - 1)
 
             scorespair = scorespair.detach().cpu().numpy()
             scores[i, :, :] = scorespair
@@ -78,5 +79,10 @@ class BatchReader:
         inds = inds[np.argsort(np.take(scores, inds))][::-1]
 
         inds3d = zip(*np.unravel_index(inds, scores.shape))
+        
+        spans = self.get_span(inds3d)
+        span_scores = np.take(scores, inds)
 
-        return (self.get_span(inds3d), np.take(scores, inds))
+        predictions = [{'span': spans[i], 'span_score': span_scores[i]} for i in range(len(spans))]
+
+        return predictions 
