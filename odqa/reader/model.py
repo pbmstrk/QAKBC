@@ -1,6 +1,7 @@
 import torch
 import numpy as np
-from transformers import BertTokenizer, BertForQuestionAnswering
+import torch.nn as nn
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 
 
 class BatchReader:
@@ -13,8 +14,8 @@ class BatchReader:
         self.device = device
 
     def config_reader(self):
-        self.tokenizer = BertTokenizer.from_pretrained(self.reader_model)
-        self.model = BertForQuestionAnswering.from_pretrained(self.reader_model)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.reader_model)
+        self.model = AutoModelForQuestionAnswering.from_pretrained(self.reader_model)
         return self
 
     def encode_batch(self, batch):
@@ -75,14 +76,4 @@ class BatchReader:
             scorespair = scorespair.detach().cpu().numpy()
             scores[i, :, :] = scorespair
 
-        inds = np.argpartition(scores, -topn, axis=None)[-topn:]
-        inds = inds[np.argsort(np.take(scores, inds))][::-1]
-
-        inds3d = zip(*np.unravel_index(inds, scores.shape))
-        
-        spans = self.get_span(inds3d)
-        span_scores = np.take(scores, inds)
-
-        predictions = [{'span': spans[i], 'span_score': span_scores[i]} for i in range(len(spans))]
-
-        return predictions 
+        return scores
