@@ -20,6 +20,12 @@ class DocDB:
         self.db_path = db_path
         self.connection = sqlite3.connect(self.db_path)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
     @property
     def path(self):
         """Return the path to the file that backs this database."""
