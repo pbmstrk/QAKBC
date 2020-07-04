@@ -14,7 +14,7 @@ parser.add_argument('outdir', type=str)
 parser.add_argument('ranker', type=str)
 parser.add_argument('retrieverpath', type=str)
 parser.add_argument('--ndocs', type=int, default=30)
-parser.add_argument('--logfile', type=str, default='./predict_docs.log')
+parser.add_argument('--logfile', type=str, default='predict_docs.log')
 
 
 def get_class(name):
@@ -26,7 +26,7 @@ def get_class(name):
 
 def initialise(args):
 
-    logging.info("Initialising retriever")
+    logger.info("Initialising retriever")
     retriever = get_class(args.ranker)(args.retrieverpath)
     return retriever
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # set up logging
-    set_logger(args.logfile)
+    logger = set_logger(args.logfile)
 
     # initialise retriever
     retriever = initialise(args)
@@ -59,9 +59,9 @@ if __name__ == '__main__':
         j = 0
         for i, batch in enumerate(batches):
             # remove this line later
-            logging.info('Retrieving results')
+            logger.info('Retrieving results')
             results = retriever.batch_closest_docs(batch, k=args.ndocs)
-            logging.info('Writing')
+            logger.info('Writing')
             for result in tqdm(results):
                 doc_ids = result[0]
                 doc_scores = result[1].tolist()
