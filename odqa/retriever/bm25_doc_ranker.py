@@ -16,7 +16,6 @@ from functools import partial
 from . import utils
 from .. import tokenizers
 
-import psutil
 logger = logging.getLogger(__name__)
 
 

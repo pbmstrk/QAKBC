@@ -42,7 +42,7 @@ def initialise(args):
 if __name__ == '__main__':
 
     args = parser.parse_args()
-    retriever, reader, db, device = initialise(args)
+    retriever, reader, db = initialise(args)
     model = ODQA(
         reader = reader,
         retriever = retriever,
