@@ -51,7 +51,7 @@ if __name__ == '__main__':
     # get file name to save predictions to
     basename = os.path.splitext(os.path.basename(args.dataset))[0]
     outfile = os.path.join(args.outdir, basename + '.pdocs')
-    logging.info("Saving to {}".format(outfile))
+    logger.info("Saving to {}".format(outfile))
 
     # retrieve predictions in batches
     with open(outfile, 'w') as f:

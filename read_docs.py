@@ -21,7 +21,7 @@ parser.add_argument('outdir', type=str)
 parser.add_argument('readerpath', type=str)
 parser.add_argument('dbpath', type=str)
 parser.add_argument('--topn', type=int, default=10)
-parser.add_argument('--logfile', type=str, default='./read_docs.log')
+parser.add_argument('--logfile', type=str, default='.read_docs.log')
 
 
 class ReaderDataset(data.Dataset):
@@ -65,7 +65,7 @@ def initialise(args):
 
     db = DocDB(args.dbpath)
 
-    logging.info('Finished initialisation')
+    logger.info('Finished initialisation')
 
     return reader, db
 
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # set up logger
-    set_logger(args.logfile)
+    logger = set_logger(args.logfile)
 
     # initialise reader and DocDB
     reader, db = initialise(args)
@@ -89,9 +89,9 @@ if __name__ == '__main__':
     outfile = os.path.join(args.outdir, basename + '-' +
                            os.path.basename(args.readerpath) + '.preds')
 
-    logging.info('Output file: {}'.format(outfile))
+    logger.info('Output file: {}'.format(outfile))
 
-    logging.info("Retrieving data")
+    logger.info("Retrieving data")
 
     all_doc_ids = []
     all_doc_scores = []
@@ -103,7 +103,7 @@ if __name__ == '__main__':
         all_doc_scores.append(dat['doc_scores'])
         queries.append(dat['query'])
 
-    logging.info("Reading..")
+    logger.info("Reading..")
 
     collate_fn = partial(generate_batch, db=db)
 
