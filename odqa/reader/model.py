@@ -30,7 +30,7 @@ class BatchReader:
 
         query, contexts = batch
         inputs = [(query, context) for context in contexts]
-        encoding = self.tokenizer.batch_encode_plus(inputs, max_length=510, pad_to_max_length=True,
+        encoding = self.tokenizer(inputs, padding=True, truncation="only_second",
                                     return_tensors="pt")
         return encoding
 
