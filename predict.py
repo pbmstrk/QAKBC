@@ -6,7 +6,7 @@ import torch
 
 from odqa.pipeline import ODQA
 from odqa.reader import BatchReader
-from odqa.retriever import BM25DocRanker, TfidfDocRanker
+from odqa.retriever import BM25DocRanker, TfidfDocRanker, DocDB
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset', type=str)
