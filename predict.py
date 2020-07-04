@@ -3,7 +3,9 @@ from tqdm import tqdm
 import json
 import os
 import torch
+import logging
 
+from odqa.logger import set_logger
 from odqa.pipeline import ODQA
 from odqa.reader import BatchReader
 from odqa.retriever import BM25DocRanker, TfidfDocRanker, DocDB
@@ -27,6 +29,9 @@ def get_class(name):
 
 
 def initialise(args):
+
+    logger.info("Initialising")
+
     if args.ranker == 'tfidf':
         retriever = get_class('tfidf')(args.retrieverpath)
     if args.ranker == 'bm25':
@@ -43,6 +48,9 @@ def initialise(args):
 if __name__ == '__main__':
 
     args = parser.parse_args()
+
+    logger = set_logger(args.logfile)
+
     retriever, reader, db = initialise(args)
     model = ODQA(
         reader = reader,
@@ -57,6 +65,7 @@ if __name__ == '__main__':
 
     basename = os.path.splitext(os.path.basename(args.dataset))[0]
     outfile = os.path.join(args.outdir, basename + '-' + os.path.basename(args.readerpath) + '.preds')
+    logger.info("Saving to {}".format(outfile))
 
     with open(outfile, 'w') as f:
         for query in tqdm(queries):
