@@ -17,8 +17,6 @@ def set_default(key, value):
     DEFAULTS[key] = value
 
 
-from .corenlp_tokenizer import CoreNLPTokenizer
-from .regexp_tokenizer import RegexpTokenizer
 from .simple_tokenizer import SimpleTokenizer
 
 # Spacy is optional
@@ -31,10 +29,6 @@ except ImportError:
 def get_class(name):
     if name == 'spacy':
         return SpacyTokenizer
-    if name == 'corenlp':
-        return CoreNLPTokenizer
-    if name == 'regexp':
-        return RegexpTokenizer
     if name == 'simple':
         return SimpleTokenizer
 

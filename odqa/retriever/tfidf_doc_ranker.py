@@ -16,13 +16,6 @@ from functools import partial
 from . import utils
 from .. import tokenizers
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-fmt = logging.Formatter('%(asctime)s: [ %(message)s ]', '%m/%d/%Y %I:%M:%S %p')
-console = logging.StreamHandler()
-console.setFormatter(fmt)
-logger.addHandler(console)
-
 
 class TfidfDocRanker:
     """Loads a pre-weighted inverted index of token/document terms.
@@ -37,9 +30,7 @@ class TfidfDocRanker:
         """
         # Load from disk
         tfidf_path = tfidf_path
-        logger.info('Loading %s' % tfidf_path)
         matrix, metadata = utils.load_sparse_csr(tfidf_path)
-        logger.info('Finished loading')
         self.doc_mat = matrix
         self.ngrams = metadata['ngram']
         self.hash_size = metadata['hash_size']

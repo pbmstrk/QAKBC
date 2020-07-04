@@ -40,14 +40,9 @@ def get_bm25_matrix(cnts, Nt, dls, k1, b):
     avgdl = np.mean(dls)
     B = (1. - b + b * dls / avgdl)  # [nb_docs]
     B = np.expand_dims(B, 0)  # [1, nb_docs]
-    print(B.dtype)
 
     nom = cnts * (k1 + 1.)
     binary = (cnts > 0).astype(np.int32)  # to avoid dense matrix in the following line
-    print(cnts.astype(np.float32).dtype)
-    print(np.float32(k1).dtype)
-    print(binary.dtype)
-    print(B.astype(np.float32).dtype)
     denom = cnts.astype(np.float32)+np.float32(k1) * binary.multiply(B.astype(np.float32))
     tfs = nom.astype(np.float32).multiply(denom.power(-1))  # sparse shape [hash_size, nb_docs]
 
