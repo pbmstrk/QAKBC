@@ -21,7 +21,7 @@ parser.add_argument('outdir', type=str)
 parser.add_argument('readerpath', type=str)
 parser.add_argument('dbpath', type=str)
 parser.add_argument('--topn', type=int, default=10)
-parser.add_argument('--logfile', type=str, default='.read_docs.log')
+parser.add_argument('--logfile', type=str, default='read_docs.log')
 
 
 class ReaderDataset(data.Dataset):

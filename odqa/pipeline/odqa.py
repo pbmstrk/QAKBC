@@ -8,7 +8,6 @@ from .. import retriever
 from ..reader import BatchReader
 
 
-
 class ODQA:
 
     def __init__(self, reader, retriever, db):
@@ -34,8 +33,14 @@ class ODQA:
         batch = (query, doc_texts)
         span_scores = self.reader.predict(batch, topn=topn)
         scores = (1 - 0.7)*doc_scores + 0.7*span_scores
-        inds = np.argpartition(scores, -topn, axis=None)[-topn:]
-        inds = inds[np.argsort(np.take(scores, inds))][::-1]
+        #inds = np.argpartition(scores, -topn, axis=None)[-topn:]
+        #inds = inds[np.argsort(np.take(scores, inds))][::-1]
+        #inds3d = zip(*np.unravel_index(inds, scores.shape))
+        idx = scores.reshape(scores.shape[0], -1).argmax(-1)
+        inds = list((np.arange(scores.shape[0]), *np.unravel_index(idx,
+                     scores.shape[-2:])))
+        inds = np.ravel_multi_index(inds, dims=scores.shape)
+        inds = inds[np.argsort(np.take(scores, inds))][::-1][:args.topn]
         inds3d = zip(*np.unravel_index(inds, scores.shape))
         spans = self.reader.get_span(inds3d)
         final_scores = np.take(scores, inds)
