@@ -40,7 +40,7 @@ class ODQA:
         inds = list((np.arange(scores.shape[0]), *np.unravel_index(idx,
                      scores.shape[-2:])))
         inds = np.ravel_multi_index(inds, dims=scores.shape)
-        inds = inds[np.argsort(np.take(scores, inds))][::-1][:args.topn]
+        inds = inds[np.argsort(np.take(scores, inds))][::-1][:topn]
         inds3d = zip(*np.unravel_index(inds, scores.shape))
         spans = self.reader.get_span(inds3d)
         final_scores = np.take(scores, inds)
