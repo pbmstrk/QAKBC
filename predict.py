@@ -1,8 +1,11 @@
-from odqa.pipeline.odqa import *
 import argparse
 from tqdm import tqdm
 import json
 import os
+import torch
+
+from odqa.pipeline import (BM25DocRanker, TfidfDocRanker,
+                           DocDB, ODQA, BatchReader)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset', type=str)
@@ -14,32 +17,35 @@ parser.add_argument('dbpath', type=str)
 parser.add_argument('--ndocs', type=int, default=10)
 parser.add_argument('--topn', type=int, default=10)
 
+
 def get_class(name):
-    if name=='tfidf':
+    if name == 'tfidf':
         return TfidfDocRanker
-    if name=='bm25':
+    if name == 'bm25':
         return BM25DocRanker
+
 
 def initialise(args):
     if args.ranker == 'tfidf':
-        retriever=get_class('tfidf')(args.retrieverpath)
+        retriever = get_class('tfidf')(args.retrieverpath)
     if args.ranker == 'bm25':
-        retriever=get_class('bm25')(args.retrieverpath) 
-    
+        retriever = get_class('bm25')(args.retrieverpath)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     reader = BatchReader(args.readerpath, device)
 
     db = DocDB(args.dbpath)
 
-    return retriever, reader, db, device
+    return retriever, reader, db
+
 
 if __name__ == '__main__':
-    
+
     args = parser.parse_args()
-    retriever, reader, db, device  = initialise(args)
+    retriever, reader, db, device = initialise(args)
     model = ODQA(
         reader = reader,
-        retriever = retriever, 
+        retriever = retriever,
         db = db
     )
 
@@ -47,7 +53,7 @@ if __name__ == '__main__':
     for line in open(args.dataset):
         data = json.loads(line)
         queries.append(data['question'])
-    
+
     basename = os.path.splitext(os.path.basename(args.dataset))[0]
     outfile = os.path.join(args.outdir, basename + '-' + os.path.basename(args.readerpath) + '.preds')
 

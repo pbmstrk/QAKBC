@@ -71,5 +71,3 @@ def load_sparse_csr(filename):
 def hash(token, num_buckets):
     """Unsigned 32 bit murmurhash for feature hashing."""
     return murmurhash3_32(token, positive=True) % num_buckets
-
-

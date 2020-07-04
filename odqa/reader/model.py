@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 
 
@@ -30,8 +29,9 @@ class BatchReader:
 
         query, contexts = batch
         inputs = [(query, context) for context in contexts]
-        encoding = self.tokenizer(inputs, padding=True, truncation="only_second",
-                                    return_tensors="pt")
+        encoding = self.tokenizer(inputs, padding=True, 
+                                  truncation="only_second",
+                                  return_tensors="pt")
         return encoding
 
     def todevice(self, encoding):
@@ -51,7 +51,9 @@ class BatchReader:
     def get_span(self, inds):
 
         token_ids = [self.encoding['input_ids'][ind[0]][ind[1]:ind[2]+1] for ind in inds]
-        spans = [self.tokenizer.convert_tokens_to_string(self.tokenizer.convert_ids_to_tokens(token_id, skip_special_tokens=True)) for token_id in token_ids]
+        spans = [self.tokenizer.convert_tokens_to_string(
+                self.tokenizer.convert_ids_to_tokens(token_id,
+                 skip_special_tokens=True)) for token_id in token_ids]
         return spans
 
     def predict(self, batch, topn=5):
@@ -65,7 +67,7 @@ class BatchReader:
         end_scores = end_scores.view(-1).softmax(0).view(*end_scores.shape)
 
         scores = np.zeros((batch_size, token_number, token_number))
-        
+
         max_len = 15
         for i in range(batch_size):
             # outer product of scores

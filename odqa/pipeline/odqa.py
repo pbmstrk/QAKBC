@@ -1,12 +1,11 @@
 import logging
-from ..reader.model import *
-from ..retriever.tfidf_doc_ranker import *
-from ..retriever.bm25_doc_ranker import *
-from ..retriever.doc_db import *
-from collections import OrderedDict
-from scipy.special import softmax
+
 import numpy as np
+from collections import OrderedDict
 from sklearn.preprocessing import normalize
+
+from .. import retriever
+from ..reader import BatchReader
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -14,6 +13,7 @@ fmt = logging.Formatter('%(asctime)s: [ %(message)s ]', '%m/%d/%Y %I:%M:%S %p')
 console = logging.StreamHandler()
 console.setFormatter(fmt)
 logger.addHandler(console)
+
 
 class ODQA:
 
@@ -35,10 +35,10 @@ class ODQA:
         d = OrderedDict(list(zip(docids, docscores)))
         doc_texts = map(self.fetch_text, list(d.keys()))
         doc_texts = [text[0] for text in doc_texts]
-        doc_scores = normalize(np.array(docscores)[:, np.newaxis],axis=0)[:, np.newaxis]
-        
+        doc_scores = normalize(np.array(docscores)[:, np.newaxis], axis=0)[:, np.newaxis]
+
         batch = (query, doc_texts)
-        span_scores  = self.reader.predict(batch, topn=topn)
+        span_scores = self.reader.predict(batch, topn=topn)
         scores = (1 - 0.7)*doc_scores + 0.7*span_scores
         inds = np.argpartition(scores, -topn, axis=None)[-topn:]
         inds = inds[np.argsort(np.take(scores, inds))][::-1]
