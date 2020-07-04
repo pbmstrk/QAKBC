@@ -4,8 +4,9 @@ import json
 import os
 import torch
 
-from odqa.pipeline import (BM25DocRanker, TfidfDocRanker,
-                           DocDB, ODQA, BatchReader)
+from odqa.pipeline import ODQA
+from odqa.reader import BatchReader
+from odqa.retriever import BM25DocRanker, TfidfDocRanker
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset', type=str)
