@@ -67,3 +67,4 @@ if __name__ == '__main__':
                 d = {'query': queries[j], 'doc_ids': doc_ids, 'doc_scores': doc_scores}
                 f.write(json.dumps(d) + '\n')
                 j += 1
+        logger.info("Finished predicting")

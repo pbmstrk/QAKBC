@@ -71,3 +71,4 @@ if __name__ == '__main__':
         for query in tqdm(queries):
             prediction = model.process_query(query, ndocs=args.ndocs, topn=args.topn)
             f.write(json.dumps(prediction) + '\n')
+        logger.info("Finished predicting")
