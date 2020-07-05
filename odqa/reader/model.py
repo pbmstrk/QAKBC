@@ -29,7 +29,7 @@ class BatchReader:
 
         query, contexts = batch
         inputs = [(query, context) for context in contexts]
-        encoding = self.tokenizer(inputs, padding=True, 
+        encoding = self.tokenizer(inputs, padding=True,
                                   truncation="only_second",
                                   return_tensors="pt")
         return encoding
@@ -56,7 +56,7 @@ class BatchReader:
                  skip_special_tokens=True)) for token_id in token_ids]
         return spans
 
-    def predict(self, batch, topn=5):
+    def predict(self, batch):
 
         start_scores, end_scores = self.process_batch(batch)
 

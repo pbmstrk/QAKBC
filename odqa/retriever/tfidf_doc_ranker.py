@@ -16,6 +16,7 @@ from functools import partial
 from . import utils
 from .. import tokenizers
 
+logger = logging.getLogger(__name__)
 
 class TfidfDocRanker:
     """Loads a pre-weighted inverted index of token/document terms.
@@ -29,7 +30,7 @@ class TfidfDocRanker:
             strict: fail on empty queries or continue (and return empty result)
         """
         # Load from disk
-        tfidf_path = tfidf_path
+        self.tfidf_path = tfidf_path
         matrix, metadata = utils.load_sparse_csr(tfidf_path)
         self.doc_mat = matrix
         self.ngrams = metadata['ngram']

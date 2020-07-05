@@ -2,12 +2,12 @@ import logging
 
 
 def set_logger(log_path):
- 
+
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    if (logger.hasHandlers()):
+    if logger.hasHandlers():
         logger.handlers.clear()
- 
+
 
     # Logging to a file
     file_handler = logging.FileHandler(log_path)

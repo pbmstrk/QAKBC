@@ -3,7 +3,6 @@ from tqdm import tqdm
 import json
 import os
 import torch
-import logging
 
 from odqa.logger import set_logger
 from odqa.pipeline import ODQA
@@ -19,6 +18,7 @@ parser.add_argument('retrieverpath', type=str)
 parser.add_argument('dbpath', type=str)
 parser.add_argument('--ndocs', type=int, default=10)
 parser.add_argument('--topn', type=int, default=10)
+parser.add_argument('--logfile', type=str, default='predict.log')
 
 
 def get_class(name):
