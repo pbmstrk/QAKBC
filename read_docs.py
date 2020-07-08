@@ -124,7 +124,7 @@ if __name__ == '__main__':
         for batch in tqdm(data_generator, total=len(queries)):
             query, doc_texts, doc_scores = batch
             span_scores = reader.predict((query, doc_texts))
-            scores = (1 - 0.7)*doc_scores + 0.7*span_scores
+            scores = span_scores
             # inds = np.argpartition(scores, -args.topn, axis=None)[-args.topn:]
             # inds = inds[np.argsort(np.take(scores, inds))][::-1]
             # inds3d = zip(*np.unravel_index(inds, scores.shape))
