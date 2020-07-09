@@ -53,7 +53,7 @@ def generate_batch(batch, db):
     docscores = normalize(np.array(docscores)[:, np.newaxis],
                           axis=0)[:, np.newaxis]
 
-    batch = (query, doctexts, docscores)
+    batch = (query, docids, doctexts, docscores)
 
     return batch
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
 #            doc_scores = normalize(np.array(docscores)[:, np.newaxis],axis=0)[:, np.newaxis]
 
         for batch in tqdm(data_generator, total=len(queries)):
-            query, doc_texts, doc_scores = batch
+            query, docids, doc_texts, doc_scores = batch
             span_scores = reader.predict((query, doc_texts))
             scores = (1 - 0.7)*doc_scores + 0.7*span_scores
             # inds = np.argpartition(scores, -args.topn, axis=None)[-args.topn:]
@@ -134,9 +134,10 @@ if __name__ == '__main__':
             inds = np.ravel_multi_index(inds, dims=scores.shape)
             inds = inds[np.argsort(np.take(scores, inds))][::-1][:args.topn]
             inds3d = zip(*np.unravel_index(inds, scores.shape))
+            print(list(inds3d))
             spans = reader.get_span(inds3d)
             final_scores = np.take(scores, inds)
-            prediction = [{'span': spans[i], 'score': final_scores[i]} for
+            prediction = [{'span': spans[i],'document': docids[list(inds3d)[i][0]], 'score': final_scores[i]} for
                           i in range(len(spans))]
             f.write(json.dumps(prediction) + '\n')
         logger.info("Finished predicting")
