@@ -14,6 +14,9 @@ from odqa.logger import set_logger
 from odqa.reader import BatchReader
 from odqa.retriever import DocDB
 
+from transformers import BertModel, BertTokenizer
+from torch.nn.functional import softmax
+
 parser = argparse.ArgumentParser()
 parser.add_argument('docs', type=str)
 parser.add_argument('outdir', type=str)
@@ -49,7 +52,7 @@ def generate_batch(batch, db):
     d = OrderedDict(list(zip(docids, docscores)))
     doctexts = map(partial(fetch_text, db=db), list(d.keys()))
     doctexts = [text[0] for text in doctexts]
-    docscores = normalize(np.array(docscores)[:, np.newaxis][:, np.newaxis])
+    docscores = np.array(docscores)
 
     batch = (query, doctexts, docscores)
 
@@ -65,11 +68,16 @@ def initialise(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     reader = BatchReader(args.readerpath, device)
 
+    ctx = BertModel.from_pretrained('context/').to(device)
+    q = BertModel.from_pretrained('question/').to(device)
+    tok = BertTokenizer.from_pretrained('bert-base-uncased')
+    
+
     db = DocDB(args.dbpath)
 
     logger.info('Finished initialisation')
 
-    return reader, db
+    return reader, db, q, ctx, tok
 
 
 def fetch_text(doc_id, db):
@@ -78,6 +86,8 @@ def fetch_text(doc_id, db):
 
 if __name__ == '__main__':
 
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # parse command line arguments
     args = parser.parse_args()
 
@@ -85,7 +95,7 @@ if __name__ == '__main__':
     logger = set_logger(args.logfile)
 
     # initialise reader and DocDB
-    reader, db = initialise(args)
+    reader, db, q, ctx, tok  = initialise(args)
 
     basename = os.path.splitext(os.path.basename(args.docs))[0]
     outfile = os.path.join(args.outdir, basename + '-' +
@@ -125,8 +135,27 @@ if __name__ == '__main__':
 
         for batch in tqdm(data_generator, total=len(queries)):
             query, doc_texts, doc_scores = batch
+            
+            q.eval()
+            ctx.eval()
+            with torch.no_grad():
+                q_encoding = tok(query, return_tensors="pt")
+                for key in q_encoding:
+                    q_encoding[key] = q_encoding[key].to(device)
+                q_val = q(**q_encoding)[1]
+                ctx_encoding = tok(doc_texts, return_tensors="pt", padding=True, truncation=True)
+                for key in ctx_encoding:
+                    ctx_encoding[key] = ctx_encoding[key].to(device)
+                ctx_val = ctx(**ctx_encoding)[1]
+                scores_dpr = normalize(torch.einsum('ij,kj -> k', q_val, ctx_val).detach().cpu().numpy())
+
+            doc_scores = normalize(doc_scores)
+
+            score_inds = np.argsort(-(doc_scores + scores_dpr))[:30]
+            doc_texts = np.array(doc_texts)[score_inds].tolist()
+            
             span_scores = reader.predict((query, doc_texts))
-            scores = (1 - 0.7)*doc_scores + 0.7*span_scores
+            scores = span_scores
             # inds = np.argpartition(scores, -args.topn, axis=None)[-args.topn:]
             # inds = inds[np.argsort(np.take(scores, inds))][::-1]
             # inds3d = zip(*np.unravel_index(inds, scores.shape))
