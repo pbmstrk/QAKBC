@@ -133,11 +133,10 @@ if __name__ == '__main__':
                          scores.shape[-2:])))
             inds = np.ravel_multi_index(inds, dims=scores.shape)
             inds = inds[np.argsort(np.take(scores, inds))][::-1][:args.topn]
-            inds3d = zip(*np.unravel_index(inds, scores.shape))
-            print(list(inds3d))
+            inds3d = list(zip(*np.unravel_index(inds, scores.shape)))
             spans = reader.get_span(inds3d)
             final_scores = np.take(scores, inds)
-            prediction = [{'span': spans[i],'document': docids[list(inds3d)[i][0]], 'score': final_scores[i]} for
+            prediction = [{'span': spans[i],'document': docids[inds3d[i][0]], 'score': final_scores[i]} for
                           i in range(len(spans))]
             f.write(json.dumps(prediction) + '\n')
         logger.info("Finished predicting")
