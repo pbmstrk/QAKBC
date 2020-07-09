@@ -147,12 +147,13 @@ if __name__ == '__main__':
                 for key in ctx_encoding:
                     ctx_encoding[key] = ctx_encoding[key].to(device)
                 ctx_val = ctx(**ctx_encoding)[1]
-                scores_dpr = normalize(torch.einsum('ij,kj -> k', q_val, ctx_val).detach().cpu().numpy())
+                scores_dpr = torch.einsum('ij,kj -> k', q_val, ctx_val).detach().cpu().numpy()
                 scores_dpr = scores_dpr.clip(min=0)
+                scores_dpr = normalize(scores_dpr)
 
             doc_scores = normalize(doc_scores)
 
-            score_inds = np.argsort(-(doc_scores + scores_dpr))[:30]
+            score_inds = np.argsort(-(0.7*doc_scores + 0.3*scores_dpr))[:30]
             doc_texts = np.array(doc_texts)[score_inds].tolist()
             
             span_scores = reader.predict((query, doc_texts))
@@ -165,10 +166,10 @@ if __name__ == '__main__':
                          scores.shape[-2:])))
             inds = np.ravel_multi_index(inds, dims=scores.shape)
             inds = inds[np.argsort(np.take(scores, inds))][::-1][:args.topn]
-            inds3d = zip(*np.unravel_index(inds, scores.shape))
+            inds3d = list(zip(*np.unravel_index(inds, scores.shape)))
             spans = reader.get_span(inds3d)
             final_scores = np.take(scores, inds)
-            prediction = [{'span': spans[i],'document': docids[inds3d[0][i]] , 'score': final_scores[i]} for
+            prediction = [{'span': spans[i],'document': docids[inds3d[i][0]] , 'score': final_scores[i]} for
                           i in range(len(spans))]
             f.write(json.dumps(prediction) + '\n')
         logger.info("Finished predicting")
