@@ -136,7 +136,18 @@ if __name__ == '__main__':
             inds3d = list(zip(*np.unravel_index(inds, scores.shape)))
             spans = reader.get_span(inds3d)
             final_scores = np.take(scores, inds)
-            prediction = [{'span': spans[i],'document': docids[inds3d[i][0]], 'score': final_scores[i]} for
-                          i in range(len(spans))]
+
+            d = {}
+            for j, span in enumerate(spans):
+                score = final_scores[j]
+                document = [docids[inds3d[j][0]]]
+                prev_score = d.get(span, {'score': 0})['score']
+                prev_doc = d.get(span, {'document': []})['document']
+                new_score = score + prev_score
+                document.extend(prev_doc)
+                d[span] = {'span': span, 'document': document, 'score': new_score}
+
+            prediction = [{'span': key,'document': value['document'], 'score': value['score']} for
+                          key, value in sorted(d.items(), key=lambda item: -item[1]['score'])]
             f.write(json.dumps(prediction) + '\n')
         logger.info("Finished predicting")
