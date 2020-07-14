@@ -20,7 +20,6 @@ parser.add_argument('docs', type=str)
 parser.add_argument('outdir', type=str)
 parser.add_argument('readerpath', type=str)
 parser.add_argument('dbpath', type=str)
-parser.add_argument('--topn', type=int, default=10)
 parser.add_argument('--logfile', type=str, default='read_docs.log')
 
 
@@ -132,7 +131,7 @@ if __name__ == '__main__':
             inds = list((np.arange(scores.shape[0]), *np.unravel_index(idx,
                          scores.shape[-2:])))
             inds = np.ravel_multi_index(inds, dims=scores.shape)
-            inds = inds[np.argsort(np.take(scores, inds))][::-1][:args.topn]
+            inds = inds[np.argsort(np.take(scores, inds))][::-1]
             inds3d = list(zip(*np.unravel_index(inds, scores.shape)))
             spans = reader.get_span(inds3d)
             final_scores = np.take(scores, inds)
