@@ -19,6 +19,7 @@ parser.add_argument('docs', type=str)
 parser.add_argument('outdir', type=str)
 parser.add_argument('readerpath', type=str)
 parser.add_argument('dbpath', type=str)
+parser.add_argument('--aggegrate', action='store_true')
 parser.add_argument('--logfile', type=str, default='read_docs.log')
 
 
@@ -114,23 +115,12 @@ if __name__ == '__main__':
                                      collate_fn=collate_fn, num_workers=0)
 
     with open(outfile, 'w') as f:
-#        for i in tqdm(range(len(all_doc_ids))):
-#            docids, docscores = all_doc_ids[i], all_doc_scores[i]
-#            query = queries[i]
-#
-#            d = OrderedDict(list(zip(docids, docscores)))
-#            doc_texts = map(partial(fetch_text, db=db), list(d.keys()))
-#            doc_texts = [text[0] for text in doc_texts]
-#            doc_scores = normalize(np.array(docscores)[:, np.newaxis],axis=0)[:, np.newaxis]
 
         for batch in tqdm(data_generator, total=len(queries)):
             query, docids, doc_texts, doc_scores = batch
             span_scores = reader.predict((query, doc_texts))
-            # scores = (1 - 0.5)*doc_scores + 0.5*span_scores
-            scores = span_scores
-            # inds = np.argpartition(scores, -args.topn, axis=None)[-args.topn:]
-            # inds = inds[np.argsort(np.take(scores, inds))][::-1]
-            # inds3d = zip(*np.unravel_index(inds, scores.shape))
+            scores = (1 - 0.5)*doc_scores + 0.5*span_scores
+            
             idx = scores.reshape(scores.shape[0], -1).argmax(-1)
             inds = list((np.arange(scores.shape[0]), *np.unravel_index(idx,
                          scores.shape[-2:])))
@@ -140,17 +130,26 @@ if __name__ == '__main__':
             spans = reader.get_span(inds3d)
             final_scores = np.take(scores, inds)
 
-            d = {}
-            for j, span in enumerate(spans):
-                score = final_scores[j]
-                document = [docids[inds3d[j][0]]]
-                prev_score = d.get(span, {'score': 0})['score']
-                prev_doc = d.get(span, {'document': []})['document']
-                new_score = score + prev_score
-                document.extend(prev_doc)
-                d[span] = {'span': span, 'document': document, 'score': new_score}
+            if args.aggegrate:
 
-            prediction = [{'span': key,'document': value['document'], 'score': value['score']} for
+                d = {}
+                for j, span in enumerate(spans):
+                    score = final_scores[j]
+                    document = [docids[inds3d[j][0]]]
+                    prev_score = d.get(span, {'score': 0})['score']
+                    prev_doc = d.get(span, {'document': []})['document']
+                    new_score = score + prev_score
+                    document.extend(prev_doc)
+                    d[span] = {'span': span, 'document': document, 'score': new_score}
+
+                prediction = [{'span': key,'document': value['document'], 'score': value['score']} for
                           key, value in sorted(d.items(), key=lambda item: -item[1]['score'])]
-            f.write(json.dumps(prediction) + '\n')
+                f.write(json.dumps(prediction) + '\n')
+
+            else:
+
+                prediction = [{'span': spans[i],'document': docids[inds3d[i][0]], 'score': final_scores[i]} for
+                          i in range(len(spans))]
+                f.write(json.dumps(prediction) + '\n')
+                
         logger.info("Finished predicting")
