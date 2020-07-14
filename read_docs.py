@@ -9,6 +9,7 @@ from functools import partial
 from tqdm import tqdm
 from torch.utils import data
 from collections import OrderedDict
+from sklearn.preprocessing import normalize
 
 from odqa.logger import set_logger
 from odqa.reader import BatchReader
@@ -49,16 +50,16 @@ def generate_batch(batch, db):
     d = OrderedDict(list(zip(docids, docscores)))
     doctexts = map(partial(fetch_text, db=db), list(d.keys()))
     doctexts = [text[0] for text in doctexts]
-    docscores = normalize(np.array(docscores))[:, np.newaxis][:, np.newaxis]
+    docscores = normalize(np.array(docscores)[:, np.newaxis], axis=0)[:, np.newaxis]
 
     batch = (query, docids, doctexts, docscores)
 
     return batch
 
 
-def normalize(arr, axis=0):
+# def normalize(arr, axis=0):
 
-    return arr/arr.sum(axis, keepdims=True)
+#    return arr/arr.sum(axis, keepdims=True)
 
 
 def initialise(args):
@@ -119,7 +120,7 @@ if __name__ == '__main__':
         for batch in tqdm(data_generator, total=len(queries)):
             query, docids, doc_texts, doc_scores = batch
             span_scores = reader.predict((query, doc_texts))
-            scores = (1 - 0.5)*doc_scores + 0.5*span_scores
+            scores = (1 - 0.7)*doc_scores + 0.7*span_scores
             
             idx = scores.reshape(scores.shape[0], -1).argmax(-1)
             inds = list((np.arange(scores.shape[0]), *np.unravel_index(idx,
@@ -131,6 +132,7 @@ if __name__ == '__main__':
             final_scores = np.take(scores, inds)
 
             if args.aggegrate:
+                
 
                 d = {}
                 for j, span in enumerate(spans):
