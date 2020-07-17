@@ -1,18 +1,21 @@
 import argparse
 import json
 import os
+import string
+import re
 
 from tqdm import tqdm
 
 from odqa.logger import set_logger
-from odqa.retriever import TfidfDocRanker, BM25DocRanker
+from odqa.retriever import TfidfDocRanker, BM25DocRanker, DocDB
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset', type=str)
 parser.add_argument('ranker', type=str)
 parser.add_argument('retrieverpath', type=str)
 parser.add_argument('dbpath', type=str)
-
+parser.add_argument('--ndocs', type=int, default=30)
+parser.add_argument('--logfile', type=str, default='eval_retriever.log')
 
 def get_class(name):
     if name == 'tfidf':
