@@ -61,6 +61,7 @@ if __name__ == '__main__':
 
     # open the dataset of queries and append to list
     queries = []
+    answers = []
     for line in open(args.dataset):
         data = json.loads(line)
         queries.append(data['question'])
@@ -68,11 +69,11 @@ if __name__ == '__main__':
 
     batches = [queries[i: i + 1000] for i in range(0, len(queries), 1000)]
     j = 0
+    count = 0
+    total = 0
     for i, batch in enumerate(batches):
         logger.info('Retrieving results')
         results = retriever.batch_closest_docs(batch, k=args.ndocs)
-        count = 0
-        total = 0
         for result in tqdm(results):
             doc_ids = result[0]
             answer = answer[j]
@@ -83,5 +84,5 @@ if __name__ == '__main__':
                     if normalize_answer(ans) in text:
                         count += 1
                         break
-                j += 1
+            j += 1
         logger.info(str(count/total))
