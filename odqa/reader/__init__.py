@@ -1,1 +1,2 @@
-from .model import BatchReader
+from .model import Reader
+from .predictions import get_predictions

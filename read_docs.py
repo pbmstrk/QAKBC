@@ -1,27 +1,20 @@
 import argparse
 import json
 import os
-import logging
 import torch
 
 import numpy as np
 from functools import partial
 from tqdm import tqdm
 from torch.utils import data
-from collections import OrderedDict
 
 from odqa.logger import set_logger
-from odqa.reader import BatchReader
+from odqa.reader import Reader
 from odqa.retriever import DocDB
+from odqa.reader import get_predictions
 
-parser = argparse.ArgumentParser()
-parser.add_argument('docs', type=str)
-parser.add_argument('outdir', type=str)
-parser.add_argument('readerpath', type=str)
-parser.add_argument('dbpath', type=str)
-parser.add_argument('--alpha', default=0.5, type=float)
-parser.add_argument('--aggegrate', action='store_true')
-parser.add_argument('--logfile', type=str, default='read_docs.log')
+from transformers import BertModel, BertTokenizer
+
 
 
 class ReaderDataset(data.Dataset):
@@ -40,45 +33,59 @@ class ReaderDataset(data.Dataset):
         Z = self.docscores[idx]
         return X, Y, Z
 
+def fetch_text(doc_id, db):
+    return db.get_doc_text(doc_id)
 
-def generate_batch(batch, db):
+
+def generate_batch(batch, db, tokenizer):
 
     query = batch[0][0]
     docids = batch[0][1]
-    docscores = batch[0][2]
 
-    d = OrderedDict(list(zip(docids, docscores)))
-    doctexts = map(partial(fetch_text, db=db), list(d.keys()))
+    docids = set(docids)
+    doctexts = map(partial(fetch_text, db=db), list(docids))
     doctexts = [text[0] for text in doctexts]
-    docscores = normalize(np.array(docscores))[:, np.newaxis][:, np.newaxis]
+    
+    raw_inputs = [(query, doctext) for doctext in doctexts]
 
-    batch = (query, docids, doctexts, docscores)
+    encoding = tokenizer(raw_inputs, padding=True,
+                                  truncation="only_second",
+                                  return_tensors="pt")
 
-    return batch
+    inputs = {
+        'input_ids': encoding['input_ids'].unsqueeze(0),
+        'attention_mask': encoding['attention_mask'].unsqueeze(0)
+    }
 
-
-def normalize(arr, axis=0):
-
-    return arr/arr.sum(axis, keepdims=True)
-
+    return inputs
 
 def initialise(args):
 
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    encoder = BertModel.from_pretrained('bert-base-uncased')
+    
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    reader = BatchReader(args.readerpath, device)
+    reader = Reader(encoder, 768)
+
+    reader.load_state_dict(torch.load(args.checkpointfile))
 
     db = DocDB(args.dbpath)
 
     logger.info('Finished initialisation')
 
-    return reader, db
-
-
-def fetch_text(doc_id, db):
-    return db.get_doc_text(doc_id)
+    return tokenizer, reader, db
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('docs', type=str)
+    parser.add_argument('outdir', type=str)
+    parser.add_argument('checkpointfile', type=str)
+    parser.add_argument('dbpath', type=str)
+    parser.add_argument('--alpha', default=0.5, type=float)
+    parser.add_argument('--aggegrate', action='store_true')
+    parser.add_argument('--logfile', type=str, default='read_docs.log')
 
     # parse command line arguments
     args = parser.parse_args()
@@ -87,11 +94,11 @@ if __name__ == '__main__':
     logger = set_logger(args.logfile)
 
     # initialise reader and DocDB
-    reader, db = initialise(args)
+    tokenizer, reader, db = initialise(args)
 
     basename = os.path.splitext(os.path.basename(args.docs))[0]
     outfile = os.path.join(args.outdir, basename + '-' +
-                           os.path.basename(args.readerpath) + '.preds')
+                           os.path.splitext(os.path.basename(args.checkpointfile))[0] + '.preds')
 
     logger.info('Output file: {}'.format(outfile))
 
@@ -109,7 +116,7 @@ if __name__ == '__main__':
 
     logger.info("Reading..")
 
-    collate_fn = partial(generate_batch, db=db)
+    collate_fn = partial(generate_batch, db=db, tokenizer=tokenizer)
 
     querydataset = ReaderDataset(queries, all_doc_ids, all_doc_scores)
     data_generator = data.DataLoader(querydataset, batch_size=1,
@@ -118,40 +125,13 @@ if __name__ == '__main__':
     with open(outfile, 'w') as f:
 
         for batch in tqdm(data_generator, total=len(queries)):
-            query, docids, doc_texts, doc_scores = batch
-            span_scores = reader.predict((query, doc_texts))
-            scores = (1 - args.alpha)*doc_scores + args.alpha*span_scores
-            
-            idx = scores.reshape(scores.shape[0], -1).argmax(-1)
-            inds = list((np.arange(scores.shape[0]), *np.unravel_index(idx,
-                         scores.shape[-2:])))
-            inds = np.ravel_multi_index(inds, dims=scores.shape)
-            inds = inds[np.argsort(np.take(scores, inds))][::-1]
-            inds3d = list(zip(*np.unravel_index(inds, scores.shape)))
-            spans = reader.get_span(inds3d)
-            final_scores = np.take(scores, inds)
 
-            if args.aggegrate:
-                
+            model_outputs = reader(**batch)
 
-                d = {}
-                for j, span in enumerate(spans):
-                    score = final_scores[j]
-                    document = [docids[inds3d[j][0]]]
-                    prev_score = d.get(span, {'score': 0})['score']
-                    prev_doc = d.get(span, {'document': []})['document']
-                    new_score = score + prev_score
-                    document.extend(prev_doc)
-                    d[span] = {'span': span, 'document': document, 'score': new_score}
+            predictions = get_predictions(batch, model_outputs, tokenizer)[0]
 
-                prediction = [{'span': key,'document': value['document'], 'score': value['score']} for
-                          key, value in sorted(d.items(), key=lambda item: -item[1]['score'])]
-                f.write(json.dumps(prediction) + '\n')
+            preds = [{'span': pred.text, 'score': pred.prob} for pred in predictions]
 
-            else:
-
-                prediction = [{'span': spans[i],'document': docids[inds3d[i][0]], 'score': final_scores[i]} for
-                          i in range(len(spans))]
-                f.write(json.dumps(prediction) + '\n')
+            f.write(json.dumps(preds) + '\n')
                 
         logger.info("Finished predicting")
