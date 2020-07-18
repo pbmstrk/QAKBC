@@ -65,7 +65,7 @@ def initialise(args):
     encoder = BertModel.from_pretrained('bert-base-uncased')
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    reader = Reader(encoder, 768)
+    reader = Reader(encoder, 768).to(device)
 
     reader.load_state_dict(torch.load(args.checkpointfile))
 
@@ -73,7 +73,7 @@ def initialise(args):
 
     logger.info('Finished initialisation')
 
-    return tokenizer, reader, db
+    return tokenizer, reader, db, device
 
 
 if __name__ == '__main__':
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     logger = set_logger(args.logfile)
 
     # initialise reader and DocDB
-    tokenizer, reader, db = initialise(args)
+    tokenizer, reader, db, device = initialise(args)
 
     basename = os.path.splitext(os.path.basename(args.docs))[0]
     outfile = os.path.join(args.outdir, basename + '-' +
@@ -125,6 +125,9 @@ if __name__ == '__main__':
     with open(outfile, 'w') as f:
 
         for batch in tqdm(data_generator, total=len(queries)):
+
+            for key in batch.keys():
+                batch[key] = batch[key].to(device)
 
             model_outputs = reader(**batch)
 

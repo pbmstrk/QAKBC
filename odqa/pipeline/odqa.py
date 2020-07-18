@@ -5,7 +5,7 @@ from collections import OrderedDict
 from sklearn.preprocessing import normalize
 
 from .. import retriever
-from ..reader import BatchReader
+from ..reader import Reader
 
 
 class ODQA:
