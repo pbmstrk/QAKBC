@@ -67,7 +67,7 @@ def initialise(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     reader = Reader(encoder, 768).to(device)
 
-    reader.load_state_dict(torch.load(args.checkpointfile))
+    reader.load_state_dict(torch.load(args.checkpointfile, map_location=device))
 
     db = DocDB(args.dbpath)
 
@@ -129,7 +129,8 @@ if __name__ == '__main__':
             for key in batch.keys():
                 batch[key] = batch[key].to(device)
 
-            model_outputs = reader(**batch)
+            with torch.no_grad():
+                model_outputs = reader(**batch)
 
             predictions = get_predictions(batch, model_outputs, tokenizer)[0]
 
