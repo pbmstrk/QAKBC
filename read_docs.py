@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
             predictions = get_predictions(batch, model_outputs, tokenizer)[0]
 
-            preds = [{'span': pred.text, 'score': pred.prob} for pred in predictions]
+            preds = [{'span': pred.text, 'score': pred.prob, 'docs': pred.passage_idx} for pred in predictions]
 
             f.write(json.dumps(preds) + '\n')
                 
