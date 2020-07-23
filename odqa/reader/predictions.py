@@ -3,7 +3,7 @@ import torch
 import math
 
 
-Prediction = namedtuple('Prediction', ['text', 'prob'])
+Prediction = namedtuple('Prediction', ['text', 'prob', 'passage_idx'])
 
 def get_predictions(batch_inputs, model_outputs, tokenizer,
                     max_answer_length=10, n_best_size=30, aggregation='sum'):
@@ -46,7 +46,7 @@ def get_predictions(batch_inputs, model_outputs, tokenizer,
             # Get the token span and convert it back to text
             span_tokens = tokens[passage_idx][start_idx:end_idx + 1]
             span_text = tokenizer.convert_tokens_to_string(span_tokens)
-            nbest_predictions.append(Prediction(text=span_text, prob=math.exp(logit)))
+            nbest_predictions.append(Prediction(text=span_text, prob=math.exp(logit), passage_idx=[passage_idx]))
 
             if len(nbest_predictions) >= n_best_size:
                 break
@@ -61,11 +61,13 @@ def get_predictions(batch_inputs, model_outputs, tokenizer,
             answer_prob_dict = {}
             for prediction in nbest_predictions:
                 if prediction.text not in answer_prob_dict:
-                    answer_prob_dict[prediction.text] = prediction.prob
+                    answer_prob_dict[prediction.text] = [prediction.prob, prediction.passage_idx]
                 else:
-                    answer_prob_dict[prediction.text] += prediction.prob
+                    prob = answer_prob_dict[prediction.text][0] + prediction.prob
+                    idx = answer_prob_dict[prediction.text][1] + [prediction.passage_idx]
+                    answer_prob_dict[prediction.text] = [prob, idx]
 
-            sorted_predictions = sorted([Prediction(text=k, prob=v) for k, v in answer_prob_dict.items()],
+            sorted_predictions = sorted([Prediction(text=k, prob=v[0], passage_idx=v[1]) for k, v in answer_prob_dict.items()],
                                         key=lambda p: p.prob, reverse=True)
 
         all_nbest.append(sorted_predictions)
