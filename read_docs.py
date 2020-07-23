@@ -40,9 +40,9 @@ def fetch_text(doc_id, db):
 def generate_batch(batch, db, tokenizer):
 
     query = batch[0][0]
-    docids = batch[0][1]
+    docids_list = batch[0][1]
 
-    docids = set(docids)
+    docids = set(docids_list)
     doctexts = map(partial(fetch_text, db=db), list(docids))
     doctexts = [text[0] for text in doctexts]
     
@@ -57,7 +57,7 @@ def generate_batch(batch, db, tokenizer):
         'attention_mask': encoding['attention_mask'].unsqueeze(0)
     }
 
-    return inputs
+    return inputs, docids_list
 
 def initialise(args):
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
 
     with open(outfile, 'w') as f:
 
-        for batch in tqdm(data_generator, total=len(queries)):
+        for batch, docids in tqdm(data_generator, total=len(queries)):
 
             for key in batch.keys():
                 batch[key] = batch[key].to(device)
@@ -133,8 +133,7 @@ if __name__ == '__main__':
                 model_outputs = reader(**batch)
 
             predictions = get_predictions(batch, model_outputs, tokenizer)[0]
-
-            preds = [{'span': pred.text, 'score': pred.prob, 'docs': [int(passage) for passage in pred.passage_idx]} for pred in predictions]
+            preds = [{'span': pred.text, 'score': pred.prob, 'docs': [docids[int(passage)] for passage in pred.passage_idx]} for pred in predictions]
 
             f.write(json.dumps(preds) + '\n')
                 
