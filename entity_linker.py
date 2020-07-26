@@ -13,25 +13,40 @@ from odqa.logger import set_logger
 from functools import partial
 
 from tqdm import tqdm
-
+from transformers import BertTokenizer
 
 EntityPrediction = namedtuple("Prediction", ['kb_id'])
+
+
+def find_matches(span, text):
+    
+    matches = []
+    index = 0
+    while index < len(text):
+        index = text.find(span, index)
+        matches.append((index, index + len(span)))
+        if index == -1:
+            break
+        index += len(span)
+    return matches
+
 
 
 def initialise(args):
 
     nlp = spacy.load(args.model_path)
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     db = DocDB(args.dbpath)
 
     logger.info('Finished initialisation')
 
-    return nlp, db
+    return nlp, tokenizer, db
 
 def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
 
 
-def process_pred(pred, nlp):
+def process_pred(pred, nlp, tokenizer):
     span = pred['span']
     docids = pred['docs']
 
@@ -39,18 +54,20 @@ def process_pred(pred, nlp):
 
     doctexts = map(partial(fetch_text, db=db), list(docids))
     for text in doctexts:
-        matches = re.finditer(span, text)
-        char_inds = [(match.start(), match.end()) for match in matches]
+        text = tokenizer.convert_tokens_to_string(tokenizer.tokenize(text[0]))
+        char_inds = find_matches(span, text) 
 
         doc = nlp(text)
-        match_dict = {(e.start_char, e.end_char): [e.kb_id_] for e in doc.ents}
+        match_dict = {(e.start_char, e.end_char): e.kb_id_ for e in doc.ents}
         entities = [match_dict.get(ind, -1) for ind in char_inds]
         entities = list(filter(lambda x: x != -1, entities))
         entity_list.extend(entities)
-
-    entity = Counter(entity_list).most_common(1)[0]
-
-    return EntityPrediction(kb_id=entity)
+    
+    if len(entity_list) > 0:
+        entity = Counter(entity_list).most_common(1)[0]
+        return EntityPrediction(kb_id=entity[0])
+    else:
+        return -1
 
 if __name__ == '__main__':
 
@@ -68,10 +85,10 @@ if __name__ == '__main__':
     logger = set_logger(args.logfile)
 
     # initialise reader and DocDB
-    nlp, db = initialise(args)
+    nlp, tokenizer, db = initialise(args)
 
     # define processing function
-    process = partial(process_pred, nlp=nlp)
+    process = partial(process_pred, nlp=nlp, tokenizer=tokenizer)
 
     # define outputpath
     outfilename = os.path.splitext(os.path.basename(args.preds))[0] + "-entity.preds"
@@ -84,7 +101,8 @@ if __name__ == '__main__':
                 entities = []
                 for result in lst_of_results:
                     ent = process(result)
-                    entities.append(ent.kb_id)
+                    if ent != -1:
+                        entities.append(ent.kb_id)
                 prediction = {'entities': entities}
                 json.dump(prediction, outfile)
                 outfile.write("\n")

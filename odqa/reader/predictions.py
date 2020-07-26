@@ -64,7 +64,7 @@ def get_predictions(batch_inputs, model_outputs, tokenizer,
                     answer_prob_dict[prediction.text] = [prediction.prob, prediction.passage_idx]
                 else:
                     prob = answer_prob_dict[prediction.text][0] + prediction.prob
-                    idx = answer_prob_dict[prediction.text][1] + [prediction.passage_idx]
+                    idx = answer_prob_dict[prediction.text][1] + prediction.passage_idx
                     answer_prob_dict[prediction.text] = [prob, idx]
 
             sorted_predictions = sorted([Prediction(text=k, prob=v[0], passage_idx=v[1]) for k, v in answer_prob_dict.items()],

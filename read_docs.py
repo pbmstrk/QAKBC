@@ -40,10 +40,9 @@ def fetch_text(doc_id, db):
 def generate_batch(batch, db, tokenizer):
 
     query = batch[0][0]
-    docids_list = batch[0][1]
+    docids = list(set(batch[0][1]))
 
-    docids = set(docids_list)
-    doctexts = map(partial(fetch_text, db=db), list(docids))
+    doctexts = map(partial(fetch_text, db=db), docids)
     doctexts = [text[0] for text in doctexts]
     
     raw_inputs = [(query, doctext) for doctext in doctexts]
@@ -57,7 +56,7 @@ def generate_batch(batch, db, tokenizer):
         'attention_mask': encoding['attention_mask'].unsqueeze(0)
     }
 
-    return inputs, docids_list
+    return inputs, docids
 
 def initialise(args):
 
