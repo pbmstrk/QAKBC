@@ -18,7 +18,7 @@ def evaluate(dataset_file, prediction_file, map_file, k):
     with open(dataset_file) as data_file:
         for line in data_file:
             data = json.loads(line)
-            answer = data['entity']
+            answer = [data['entity']]
             answers.append(answer)
     
     if map_file:
