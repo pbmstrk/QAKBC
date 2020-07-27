@@ -31,7 +31,7 @@ def evaluate(dataset_file, prediction_file, map_file, k):
             data = json.loads(line)
             preds = data['entities']
             if map_file:
-                preds = [ent_map[pred] for pred in preds]
+                preds = [ent_map[pred] for pred in preds if pred != '']
             predictions.append(preds)
 
     score = 0
