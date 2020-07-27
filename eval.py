@@ -24,15 +24,15 @@ def evaluate(dataset_file, prediction_file, map_file, k):
     if map_file:
         with open(map_file) as mf:
             ent_map = json.load(mf)
-            answers = [ent_map[ans] for ans in answers]
     
     predictions = []
     with open(prediction_file) as f:
         for line in f:
             data = json.loads(line)
             preds = data['entities']
+            if map_file:
+                preds = [ent_map[pred] for pred in preds]
             predictions.append(preds)
-
 
     score = 0
     for i in range(len(predictions)):
