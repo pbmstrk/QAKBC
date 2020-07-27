@@ -47,7 +47,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('datasetfile')
     parser.add_argument('predfile')
-    parser.add_argument('k')
+    parser.add_argument('k', type=int)
     parser.add_argument('--map_file', type=str)
     parser.add_argument('--logfile', type=str, default='eval.log')
 
