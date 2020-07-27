@@ -12,13 +12,19 @@ def hits_at_k(preds, ans, k):
     return any_in(preds_k, ans)
 
 
-def evaluate(dataset_file, prediction_file, k):
+def evaluate(dataset_file, prediction_file, map_file, k):
 
     answers = []
-    for line in open(dataset_file):
-        data = json.loads(line)
-        answer = data['entity']
-        answers.append(answer)
+    with open(dataset_file) as data_file:
+        for line in data_file:
+            data = json.loads(line)
+            answer = data['entity']
+            answers.append(answer)
+    
+    if map_file:
+        with open('map_file') as mf:
+            ent_map = json.load(mf)
+            answers = [ent_map[ans] for ans in answers]
     
     predictions = []
     with open(prediction_file) as f:
@@ -39,13 +45,11 @@ def evaluate(dataset_file, prediction_file, k):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('datasetfile',
-                    help="path to files that should be combined")
-    parser.add_argument('predfile',
-                    help="path to outputfile, path/to/output.txt")
-    parser.add_argument('k', type=int,
-                    help="Hits@k")
+    parser.add_argument('datasetfile')
+    parser.add_argument('predfile')
+    parser.add_argument('k')
     parser.add_argument('--map_file', type=str)
+    parser.add_argument('--logfile', type=str, default='eval.log')
 
     # parse command line arguments
     args = parser.parse_args()
@@ -57,4 +61,4 @@ if __name__ == "__main__":
     
     logger.info('Arguments: %s' % str(args))
 
-    evaluate(args.datasetfile, args.predfile, args.k)
+    evaluate(args.datasetfile, args.predfile, args.map_file, args.k)
