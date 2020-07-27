@@ -22,7 +22,7 @@ def evaluate(dataset_file, prediction_file, map_file, k):
             answers.append(answer)
     
     if map_file:
-        with open('map_file') as mf:
+        with open(map_file) as mf:
             ent_map = json.load(mf)
             answers = [ent_map[ans] for ans in answers]
     
