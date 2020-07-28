@@ -47,7 +47,7 @@ def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
 
 
-def process_pred(pred, nlp, tokenizer):
+def process_pred(pred, linker, tokenizer):
     span = pred['span']
     docids = pred['docs']
 
@@ -86,10 +86,10 @@ if __name__ == '__main__':
     logger = set_logger(args.logfile)
 
     # initialise reader and DocDB
-    nlp, tokenizer, db = initialise(args)
+    linker, tokenizer, db = initialise(args)
 
     # define processing function
-    process = partial(process_pred, nlp=nlp, tokenizer=tokenizer)
+    process = partial(process_pred, linker=linker, tokenizer=tokenizer)
 
     # define outputpath
     outfilename = os.path.splitext(os.path.basename(args.preds))[0] + "-entity.preds"
