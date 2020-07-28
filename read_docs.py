@@ -3,7 +3,6 @@ import json
 import os
 import torch
 
-import numpy as np
 from functools import partial
 from tqdm import tqdm
 from torch.utils import data

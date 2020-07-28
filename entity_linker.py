@@ -1,5 +1,3 @@
-import spacy
-import re
 import ast
 import os
 import json
