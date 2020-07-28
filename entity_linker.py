@@ -10,6 +10,7 @@ from collections import Counter
 
 from odqa.retriever import DocDB
 from odqa.logger import set_logger
+from odqa.linker import EntityLinker
 from functools import partial
 
 from tqdm import tqdm
@@ -34,13 +35,13 @@ def find_matches(span, text):
 
 def initialise(args):
 
-    nlp = spacy.load(args.model_path)
+    linker = EntityLinker(args.model_path)
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     db = DocDB(args.dbpath)
 
     logger.info('Finished initialisation')
 
-    return nlp, tokenizer, db
+    return linker, tokenizer, db
 
 def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
@@ -57,8 +58,8 @@ def process_pred(pred, nlp, tokenizer):
         text = tokenizer.convert_tokens_to_string(tokenizer.tokenize(text[0]))
         char_inds = find_matches(span, text) 
 
-        doc = nlp(text)
-        match_dict = {(e.start_char, e.end_char): e.kb_id_ for e in doc.ents}
+       
+        match_dict = linker(text)
         entities = [match_dict.get(ind, -1) for ind in char_inds]
         entities = list(filter(lambda x: x != -1, entities))
         entity_list.extend(entities)
