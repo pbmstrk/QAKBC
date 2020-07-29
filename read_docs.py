@@ -129,7 +129,8 @@ def main(
                 model_outputs = reader(**batch)
 
             predictions = get_predictions(batch, model_outputs, tokenizer)[0]
-            preds = [{'span': pred.text, 'score': pred.prob, 'docs': [docids[int(passage)] for passage in pred.passage_idx]} for pred in predictions]
+            preds = [{'span': pred.text, 'score': pred.prob, 'docs': [docids[int(passage)] for passage in pred.passage_idx], 
+                'start_idx': pred.start_idx, 'end_idx': pred.end_idx} for pred in predictions]
 
             f.write(json.dumps(preds) + '\n')
                 
