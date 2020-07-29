@@ -1,4 +1,4 @@
-import argparse
+import typer
 import json
 import os
 import torch
@@ -73,35 +73,33 @@ def initialise(args):
 
     return tokenizer, reader, db, device
 
+def main(
+    docs: str = typer.Argument(..., help="Path to file containing predicted documents"), 
+    outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
+    checkpointfile: str = typer.Argument(..., help="Path to file containing model checkpoint"), 
+    dbpath: str = typer.Argument(..., help="Path to SQLite database"),
+    logfile: int = typer.Option('read_docs.log', help="Path to log file")
+    ):
 
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('docs', type=str)
-    parser.add_argument('outdir', type=str)
-    parser.add_argument('checkpointfile', type=str)
-    parser.add_argument('dbpath', type=str)
-    parser.add_argument('--alpha', default=0.5, type=float)
-    parser.add_argument('--aggegrate', action='store_true')
-    parser.add_argument('--logfile', type=str, default='read_docs.log')
-
-    # parse command line arguments
-    args = parser.parse_args()
+    # set up args datastructure
+    args_dict = locals()
+    argsClass = namedtuple('args', sorted(args_dict))
+    args = argsClass(**args_dict)
 
     # set up logger
-    logger = set_logger(args.logfile)
+    logger = set_logger(logfile)
 
-    # initialise reader and DocDB
+    # initialise models
     tokenizer, reader, db, device = initialise(args)
 
+    # set output name
     basename = os.path.splitext(os.path.basename(args.docs))[0]
     outfile = os.path.join(args.outdir, basename + '-' +
                            os.path.splitext(os.path.basename(args.checkpointfile))[0] + '.preds')
-
     logger.info('Output file: {}'.format(outfile))
 
+    # read in data
     logger.info("Retrieving data")
-
     all_doc_ids = []
     all_doc_scores = []
     queries = []
@@ -111,9 +109,9 @@ if __name__ == '__main__':
         all_doc_ids.append(dat['doc_ids'])
         all_doc_scores.append(dat['doc_scores'])
         queries.append(dat['query'])
-
+    
+    # read documents
     logger.info("Reading..")
-
     collate_fn = partial(generate_batch, db=db, tokenizer=tokenizer)
 
     querydataset = ReaderDataset(queries, all_doc_ids, all_doc_scores)
@@ -136,3 +134,7 @@ if __name__ == '__main__':
             f.write(json.dumps(preds) + '\n')
                 
         logger.info("Finished predicting")
+
+if __name__ == '__main__':
+
+    typer.run(main)
