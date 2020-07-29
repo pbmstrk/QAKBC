@@ -2,7 +2,7 @@ import ast
 import os
 import json
 
-import argparse
+import typer
 from collections import namedtuple
 from collections import Counter
 
@@ -29,15 +29,11 @@ def find_matches(span, text):
         index += len(span)
     return matches
 
-
-
 def initialise(args):
 
     linker = EntityLinker(args.model_path)
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     db = DocDB(args.dbpath)
-
-    logger.info('Finished initialisation')
 
     return linker, tokenizer, db
 
@@ -45,7 +41,7 @@ def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
 
 
-def process_pred(pred, linker, tokenizer):
+def process_pred(pred, linker, tokenizer, db):
     span = pred['span']
     docids = pred['docs']
 
@@ -56,7 +52,6 @@ def process_pred(pred, linker, tokenizer):
         text = tokenizer.convert_tokens_to_string(tokenizer.tokenize(text[0]))
         char_inds = find_matches(span, text) 
 
-       
         match_dict = linker(text)
         entities = [match_dict.get(ind, -1) for ind in char_inds]
         entities = list(filter(lambda x: x != -1, entities))
@@ -68,33 +63,37 @@ def process_pred(pred, linker, tokenizer):
     else:
         return -1
 
-if __name__ == '__main__':
+def main(
+        preds: str = typer.Argument(..., help="Path to file containing predicted spans"), 
+        outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
+        model_path: str = typer.Argument(..., help="Path to file containing entity linking model"), 
+        dbpath: str = typer.Argument(..., help="Path to SQLite database"),
+        logfile: str = typer.Option('entity_linker.log', help="Path to log file")
+    ):
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('preds', type=str)
-    parser.add_argument('outdir', type=str)
-    parser.add_argument('model_path', type=str)
-    parser.add_argument('dbpath', type=str)
-    parser.add_argument('--logfile', type=str, default='entity_linker.log')
-
-    # parse command line arguments
-    args = parser.parse_args()
+    # set up args datastructure
+    args_dict = locals()
+    ArgsClass = namedtuple('args', sorted(args_dict))
+    args = ArgsClass(**args_dict)
 
     # set up logger
-    logger = set_logger(args.logfile)
+    logger = set_logger(logfile)
+    logger.info(args)
 
     # initialise reader and DocDB
     linker, tokenizer, db = initialise(args)
+    logger.info('Finished initialisation')
 
     # define processing function
-    process = partial(process_pred, linker=linker, tokenizer=tokenizer)
+    process = partial(process_pred, linker=linker, tokenizer=tokenizer, db=db)
 
-    # define outputpath
-    outfilename = os.path.splitext(os.path.basename(args.preds))[0] + "-entity.preds"
-    outfilepath = args.outdir + "/" + outfilename
+    # define output filename
+    outfilename = os.path.splitext(os.path.basename(preds))[0] + "-entity.preds"
+    outfilepath = outdir + "/" + outfilename
 
+    # predict entities
     with open(outfilepath, 'w') as outfile:
-        with open(args.preds, 'r') as pred_file:
+        with open(preds, 'r') as pred_file:
             for line in tqdm(pred_file):
                 lst_of_results = ast.literal_eval(line)
                 entities = []
@@ -106,6 +105,9 @@ if __name__ == '__main__':
                 json.dump(prediction, outfile)
                 outfile.write("\n")
 
+if __name__ == '__main__':
+
+    typer.run(main)
                 
 
 

@@ -1,19 +1,12 @@
-import argparse
+import typer
 import json
 import os
 
 from tqdm import tqdm
+from collections import namedtuple
 
 from odqa.logger import set_logger
 from odqa.retriever import TfidfDocRanker, BM25DocRanker
-
-parser = argparse.ArgumentParser()
-parser.add_argument('dataset', type=str)
-parser.add_argument('outdir', type=str)
-parser.add_argument('ranker', type=str)
-parser.add_argument('retrieverpath', type=str)
-parser.add_argument('--ndocs', type=int, default=30)
-parser.add_argument('--logfile', type=str, default='predict_docs.log')
 
 
 def get_class(name):
@@ -25,31 +18,41 @@ def get_class(name):
 
 def initialise(args):
 
-    logger.info("Initialising retriever")
     retriever = get_class(args.ranker)(args.retrieverpath)
     return retriever
 
+def main(
+        dataset: str = typer.Argument(..., help="Path to file containing queries"), 
+        outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
+        ranker: str = typer.Argument(..., help="Ranker to use"), 
+        retrieverpath: str = typer.Argument(..., help="Path to retriever"),
+        ndocs: int = typer.Option(30, help="Number of documents to retrieve"),
+        logfile: str = typer.Option('predict_docs.log', help="Path to log file")
+    ):
 
-if __name__ == '__main__':
-
-    # parse command line arguments
-    args = parser.parse_args()
+    # set up args datastructure
+    args_dict = locals()
+    ArgsClass = namedtuple('args', sorted(args_dict))
+    args = ArgsClass(**args_dict)
 
     # set up logging
-    logger = set_logger(args.logfile)
+    logger = set_logger(logfile)
+
+    logger.info(args)
 
     # initialise retriever
+    logger.info("Initialising retriever")
     retriever = initialise(args)
 
-    # open the dataset of queries and append to list
+    # open the dataset of queries
     queries = []
-    for line in open(args.dataset):
+    for line in open(dataset):
         data = json.loads(line)
         queries.append(data['question'])
 
     # get file name to save predictions to
-    basename = os.path.splitext(os.path.basename(args.dataset))[0]
-    outfile = os.path.join(args.outdir, basename + '.pdocs')
+    basename = os.path.splitext(os.path.basename(dataset))[0]
+    outfile = os.path.join(outdir, basename + '.pdocs')
     logger.info("Saving to {}".format(outfile))
 
     # retrieve predictions in batches
@@ -59,7 +62,7 @@ if __name__ == '__main__':
         for i, batch in enumerate(batches):
             # remove this line later
             logger.info('Retrieving results')
-            results = retriever.batch_closest_docs(batch, k=args.ndocs)
+            results = retriever.batch_closest_docs(batch, k=ndocs)
             logger.info('Writing')
             for result in tqdm(results):
                 doc_ids = result[0]
@@ -68,3 +71,8 @@ if __name__ == '__main__':
                 f.write(json.dumps(d) + '\n')
                 j += 1
         logger.info("Finished predicting")
+
+
+if __name__ == '__main__':
+
+    typer.run(main)
