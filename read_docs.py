@@ -6,6 +6,7 @@ import torch
 from functools import partial
 from tqdm import tqdm
 from torch.utils import data
+from collections import namedtuple
 
 from odqa.logger import set_logger
 from odqa.reader import Reader
@@ -69,33 +70,32 @@ def initialise(args):
 
     db = DocDB(args.dbpath)
 
-    logger.info('Finished initialisation')
-
     return tokenizer, reader, db, device
 
 def main(
-    docs: str = typer.Argument(..., help="Path to file containing predicted documents"), 
-    outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
-    checkpointfile: str = typer.Argument(..., help="Path to file containing model checkpoint"), 
-    dbpath: str = typer.Argument(..., help="Path to SQLite database"),
-    logfile: int = typer.Option('read_docs.log', help="Path to log file")
+        docs: str = typer.Argument(..., help="Path to file containing predicted documents"), 
+        outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
+        checkpointfile: str = typer.Argument(..., help="Path to file containing model checkpoint"), 
+        dbpath: str = typer.Argument(..., help="Path to SQLite database"),
+        logfile: int = typer.Option('read_docs.log', help="Path to log file")
     ):
 
     # set up args datastructure
     args_dict = locals()
-    argsClass = namedtuple('args', sorted(args_dict))
-    args = argsClass(**args_dict)
+    ArgsClass = namedtuple('args', sorted(args_dict))
+    args = ArgsClass(**args_dict)
 
     # set up logger
     logger = set_logger(logfile)
 
     # initialise models
     tokenizer, reader, db, device = initialise(args)
+    logger.info('Finished initialisation')
 
     # set output name
-    basename = os.path.splitext(os.path.basename(args.docs))[0]
-    outfile = os.path.join(args.outdir, basename + '-' +
-                           os.path.splitext(os.path.basename(args.checkpointfile))[0] + '.preds')
+    basename = os.path.splitext(os.path.basename(docs))[0]
+    outfile = os.path.join(outdir, basename + '-' +
+                           os.path.splitext(os.path.basename(checkpointfile))[0] + '.preds')
     logger.info('Output file: {}'.format(outfile))
 
     # read in data
@@ -104,7 +104,7 @@ def main(
     all_doc_scores = []
     queries = []
 
-    for line in open(args.docs):
+    for line in open(docs):
         dat = json.loads(line)
         all_doc_ids.append(dat['doc_ids'])
         all_doc_scores.append(dat['doc_scores'])
