@@ -1,2 +1,2 @@
 from .model import Reader
-from .predictions import get_predictions
+from .predict import get_predictions
