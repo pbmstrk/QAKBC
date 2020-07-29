@@ -77,7 +77,7 @@ def main(
         outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
         checkpointfile: str = typer.Argument(..., help="Path to file containing model checkpoint"), 
         dbpath: str = typer.Argument(..., help="Path to SQLite database"),
-        logfile: int = typer.Option('read_docs.log', help="Path to log file")
+        logfile: str = typer.Option('read_docs.log', help="Path to log file")
     ):
 
     # set up args datastructure
