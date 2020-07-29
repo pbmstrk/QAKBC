@@ -13,7 +13,20 @@ Prediction can either be completed in one step using `predict.py` or in two stag
 ## Retrieval
 
 ```
-python predict_docs.py dataset outdir ranker retrieverpath --ndocs --logfile
+Usage: predict_docs.py [OPTIONS] DATASET OUTDIR RANKER RETRIEVERPATH
+
+Arguments:
+  DATASET        Path to file containing queries  [required]
+  OUTDIR         Output directory for prediction file  [required]
+  RANKER         Ranker to use  [required]
+  RETRIEVERPATH  Path to retriever  [required]
+
+Options:
+  --ndocs INTEGER                 Number of documents to retrieve  [default:
+                                  30]
+
+  --logfile TEXT                  Path to log file  [default:
+                                  predict_docs.log]
 ```
 
 `predict_docs.py` creates a `.preds` file  with the questions and the top `ndocs` referenced by their ID in the SQLite database.
@@ -21,7 +34,30 @@ python predict_docs.py dataset outdir ranker retrieverpath --ndocs --logfile
 ## Reading
 
 ```
-python read_docs.py docs outdir readerpath dbpath --topn --logfile
+Usage: read_docs.py [OPTIONS] DOCS OUTDIR CHECKPOINTFILE DBPATH
+
+Arguments:
+  DOCS            Path to file containing predicted documents  [required]
+  OUTDIR          Output directory for prediction file  [required]
+  CHECKPOINTFILE  Path to file containing model checkpoint  [required]
+  DBPATH          Path to SQLite database  [required]
+
+Options:
+  --logfile TEXT                  Path to log file  [default: read_docs.log]
+```
+## Entity Linking
+
+```
+Usage: entity_linker.py [OPTIONS] PREDS OUTDIR MODEL_PATH DBPATH
+
+Arguments:
+  PREDS       Path to file containing predicted spans  [required]
+  OUTDIR      Output directory for prediction file  [required]
+  MODEL_PATH  Path to file containing entity linking model  [required]
+  DBPATH      Path to SQLite database  [required]
+
+Options:
+  --logfile TEXT                  Path to log file  [default:
+                                  entity_linker.log]
 ```
 
-`topn` controls how many predictions are made for each query.
