@@ -31,7 +31,7 @@ def find_matches(span, text):
 
 def initialise(args, logger):
 
-    linker = EntityLinker(logger)
+    linker = EntityLinker(args.model_path, logger)
     tokenizer = BertWordPieceTokenizer('vocab.txt', lowercase=True)
     db = DocDB(args.dbpath)
 
@@ -67,6 +67,9 @@ def process_pred(pred, linker, tokenizer, db):
             "context_right": text[0][end:]
         }
         data_to_link.append(d)
+        print("Span: {}".format(span))
+        print("mention: {}".format(d["mention"]))
+
 
     predictions = linker(data_to_link)
     

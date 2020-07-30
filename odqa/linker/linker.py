@@ -6,11 +6,11 @@ logger = logging.getLogger(__name__)
 
 class EntityLinker:
 
-    def __init__(self, logger=None):
+    def __init__(self, model_path, logger=None):
 
         self.logger = logger
 
-        self.models_path = "models/"
+        self.models_path = model_path
 
         self.config =  {
             "test_entities": None,
