@@ -12,7 +12,7 @@ from odqa.linker import EntityLinker
 from functools import partial
 
 from tqdm import tqdm
-from transformers import BertTokenizer
+from tokenizers import BertWordPieceTokenizer
 
 EntityPrediction = namedtuple("Prediction", ['kb_id'])
 
@@ -29,10 +29,10 @@ def find_matches(span, text):
         index += len(span)
     return matches
 
-def initialise(args):
+def initialise(args, logger):
 
-    linker = EntityLinker(args.model_path)
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    linker = EntityLinker(logger)
+    tokenizer = BertWordPieceTokenizer('vocab.txt', lowercase=True)
     db = DocDB(args.dbpath)
 
     return linker, tokenizer, db
@@ -44,24 +44,34 @@ def fetch_text(doc_id, db):
 def process_pred(pred, linker, tokenizer, db):
     span = pred['span']
     docids = pred['docs']
+    start_idx = pred['start_idx']
+    end_idx = pred['end_idx']
+
+    idx = list(zip(start_idx, end_idx))
 
     entity_list = []
 
     doctexts = map(partial(fetch_text, db=db), list(docids))
-    for text in doctexts:
-        text = tokenizer.convert_tokens_to_string(tokenizer.tokenize(text[0]))
-        char_inds = find_matches(span, text) 
+    data_to_link = []
+    for i, text in enumerate(doctexts):
+        ids = idx[i]
+        encoding = tokenizer.encode(text[0])
+        start = encoding.token_to_chars(ids[0])[0]
+        end = encoding.token_to_chars(ids[1])[1]
+        d = {
+            "id": 0,
+            "label": "unknown",
+            "label_id": -1,
+            "context_left": text[0][:start].lower(),
+            "mention": text[0][start:end],
+            "context_right": text[0][end:]
+        }
+        data_to_link.append(d)
 
-        match_dict = linker(text)
-        entities = [match_dict.get(ind, -1) for ind in char_inds]
-        entities = list(filter(lambda x: x != -1, entities))
-        entity_list.extend(entities)
+    predictions = linker(data_to_link)
     
-    if len(entity_list) > 0:
-        entity = Counter(entity_list).most_common(1)[0]
-        return EntityPrediction(kb_id=entity[0])
-    else:
-        return -1
+    
+    return predictions
 
 def main(
         preds: str = typer.Argument(..., help="Path to file containing predicted spans"), 
@@ -81,7 +91,7 @@ def main(
     logger.info(args)
 
     # initialise reader and DocDB
-    linker, tokenizer, db = initialise(args)
+    linker, tokenizer, db = initialise(args, logger)
     logger.info('Finished initialisation')
 
     # define processing function
@@ -99,11 +109,12 @@ def main(
                 entities = []
                 for result in lst_of_results:
                     ent = process(result)
-                    if ent != -1:
-                        entities.append(ent.kb_id)
-                prediction = {'entities': entities}
-                json.dump(prediction, outfile)
-                outfile.write("\n")
+                    print(ent)
+               #     if ent != -1:
+               #         entities.append(ent.kb_id)
+               # prediction = {'entities': entities}
+               # json.dump(prediction, outfile)
+               # outfile.write("\n")
 
 if __name__ == '__main__':
 
