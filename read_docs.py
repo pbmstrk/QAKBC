@@ -56,7 +56,7 @@ def generate_batch(batch, db, tokenizer):
         'attention_mask': encoding['attention_mask'].unsqueeze(0)
     }
 
-    return inputs, docids
+    return inputs, docids, query
 
 def initialise(args):
 
@@ -120,7 +120,7 @@ def main(
 
     with open(outfile, 'w') as f:
 
-        for batch, docids in tqdm(data_generator, total=len(queries)):
+        for batch, docids, query in tqdm(data_generator, total=len(queries)):
 
             for key in batch.keys():
                 batch[key] = batch[key].to(device)
@@ -129,7 +129,7 @@ def main(
                 model_outputs = reader(**batch)
 
             predictions = get_predictions(batch, model_outputs, tokenizer)[0]
-            preds = [{'span': pred.text, 'score': pred.prob, 'docs': [docids[int(passage)] for passage in pred.passage_idx], 
+            preds = [{'query': query, 'span': pred.text, 'score': pred.prob, 'docs': [docids[int(passage)] for passage in pred.passage_idx], 
                 'start_idx': [int(idx) for idx in pred.start_idx], 'end_idx': [int(idx) for idx in pred.end_idx]} for pred in predictions]
 
             f.write(json.dumps(preds) + '\n')
