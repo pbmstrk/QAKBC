@@ -80,7 +80,7 @@ def process_result_list(res_list, linker, tokenizer, db, conn, ent_list=None):
                 sql_query = "select wikidata_id from mapping where wikipedia_id = {}".format(pred)
                 cursor = conn.execute(sql_query)
                 result = cursor.fetchone()
-                if result == None:
+                if result is None:
                     continue
                 else:
                     result=result[0]
