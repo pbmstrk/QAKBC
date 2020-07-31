@@ -16,7 +16,6 @@ from tokenizers import BertWordPieceTokenizer
 
 import sqlite3
 
-EntityPrediction = namedtuple("Prediction", ['kb_id'])
 
 
 def initialise(args, logger):
@@ -31,33 +30,35 @@ def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
 
 
-def process_pred(pred, linker, tokenizer, db, conn, ent_list=None):
-    query = pred['query']
-    span = pred['span']
-    docids = pred['docs']
-    start_idx = pred['start_idx']
-    end_idx = pred['end_idx']
+def process_result_list(res_list, linker, tokenizer, db, conn, ent_list=None):
 
-    idx = list(zip(start_idx, end_idx))
-
-    entity_list = []
-
-    doctexts = map(partial(fetch_text, db=db), list(docids))
+    # query is the same for each 
+    query = res_list[0]['query']
     data_to_link = []
-    for i, text in enumerate(doctexts):
-        ids = idx[i]
-        encoding = tokenizer.encode(query, text[0])
-        start = encoding.token_to_chars(ids[0])[0]
-        end = encoding.token_to_chars(ids[1])[1]
-        d = {
-            "id": 0,
-            "label": "unknown",
-            "label_id": -1,
-            "context_left": text[0][:start].lower(),
-            "mention": text[0][start:end],
-            "context_right": text[0][end:]
-        }
-        data_to_link.append(d)
+
+    for pred in res_list:
+        docids = pred['docs']
+        start_idx = pred['start_idx']
+        end_idx = pred['end_idx']
+
+        idx = list(zip(start_idx, end_idx))
+
+        doctexts = map(partial(fetch_text, db=db), list(docids))
+        
+        for i, text in enumerate(doctexts):
+            ids = idx[i]
+            encoding = tokenizer.encode(query, text[0])
+            start = encoding.token_to_chars(ids[0])[0]
+            end = encoding.token_to_chars(ids[1])[1]
+            d = {
+                "id": 0,
+                "label": "unknown",
+                "label_id": -1,
+                "context_left": text[0][:start].lower(),
+                "mention": text[0][start:end],
+                "context_right": text[0][end:]
+            }
+            data_to_link.append(d)
 
     if ent_list == None:
         predictions = linker(data_to_link)
@@ -69,8 +70,6 @@ def process_pred(pred, linker, tokenizer, db, conn, ent_list=None):
             cursor = conn.execute(sql_query)
             result = cursor.fetchone()[0]
             wikidata_preds.append(result)
-        
-        entity = Counter(wikidata_preds).most_common(1)[0]
     
     else:
         
@@ -84,10 +83,8 @@ def process_pred(pred, linker, tokenizer, db, conn, ent_list=None):
                 if result in ent_list:
                     wikidata_preds.append(result)
                     break
-        
-        entity = Counter(wikidata_preds).most_common(1)[0]
     
-    return entity
+    return wikidata_preds
 
 def main(
         preds: str = typer.Argument(..., help="Path to file containing predicted spans"), 
@@ -122,10 +119,10 @@ def main(
 
     # define processing function
     if filter == True:
-        process = partial(process_pred, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
+        process = partial(process_result_list, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
         ent_list=entities)
     else:
-        process = partial(process_pred, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
+        process = partial(process_result_list, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
         ent_list=None)
 
     # define output filename
@@ -137,10 +134,7 @@ def main(
         with open(preds, 'r') as pred_file:
             for line in tqdm(pred_file):
                 lst_of_results = ast.literal_eval(line)
-                entities = []
-                for result in lst_of_results:
-                    ent = process(result)
-                    entities.append(ent)
+                entities = process(lst_of_results)
                 prediction = {'entities': entities}
                 json.dump(prediction, outfile)
                 outfile.write("\n")
