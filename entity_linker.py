@@ -79,7 +79,11 @@ def process_result_list(res_list, linker, tokenizer, db, conn, ent_list=None):
             for pred in pred_list:
                 sql_query = "select wikidata_id from mapping where wikipedia_id = {}".format(pred)
                 cursor = conn.execute(sql_query)
-                result = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                if result == None:
+                    continue
+                else:
+                    result=result[0]
                 if result in ent_list:
                     wikidata_preds.append(result)
                     break
