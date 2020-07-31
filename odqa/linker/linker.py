@@ -26,7 +26,7 @@ class EntityLinker:
             "output_path": "logs/", # logging directory
             "faiss_index": "flat",
             "index_path": self.models_path+"faiss_flat_index.pkl",
-            "top_k": 10
+            "top_k": 1
         }
 
         self.args = argparse.Namespace(**self.config)

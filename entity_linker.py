@@ -17,18 +17,6 @@ from tokenizers import BertWordPieceTokenizer
 EntityPrediction = namedtuple("Prediction", ['kb_id'])
 
 
-def find_matches(span, text):
-    
-    matches = []
-    index = 0
-    while index < len(text):
-        index = text.find(span, index)
-        matches.append((index, index + len(span)))
-        if index == -1:
-            break
-        index += len(span)
-    return matches
-
 def initialise(args, logger):
 
     linker = EntityLinker(args.model_path, logger)
@@ -42,6 +30,7 @@ def fetch_text(doc_id, db):
 
 
 def process_pred(pred, linker, tokenizer, db):
+    query = pred['query']
     span = pred['span']
     docids = pred['docs']
     start_idx = pred['start_idx']
@@ -55,7 +44,7 @@ def process_pred(pred, linker, tokenizer, db):
     data_to_link = []
     for i, text in enumerate(doctexts):
         ids = idx[i]
-        encoding = tokenizer.encode(text[0])
+        encoding = tokenizer.encode(query, text[0])
         start = encoding.token_to_chars(ids[0])[0]
         end = encoding.token_to_chars(ids[1])[1]
         d = {
@@ -67,12 +56,9 @@ def process_pred(pred, linker, tokenizer, db):
             "context_right": text[0][end:]
         }
         data_to_link.append(d)
-        print("Span: {}".format(span))
-        print("mention: {}".format(d["mention"]))
 
 
     predictions = linker(data_to_link)
-    
     
     return predictions
 
@@ -112,12 +98,10 @@ def main(
                 entities = []
                 for result in lst_of_results:
                     ent = process(result)
-                    print(ent)
-               #     if ent != -1:
-               #         entities.append(ent.kb_id)
-               # prediction = {'entities': entities}
-               # json.dump(prediction, outfile)
-               # outfile.write("\n")
+                    entities.append(ent[0])
+                prediction = {'entities': entities}
+                json.dump(prediction, outfile)
+                outfile.write("\n")
 
 if __name__ == '__main__':
 
