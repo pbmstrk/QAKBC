@@ -25,7 +25,6 @@ def initialise(args, logger):
     tokenizer = BertWordPieceTokenizer('vocab.txt', lowercase=True)
     db = DocDB(args.dbpath)
     conn = sqlite3.connect(args.idpath)
-    cursor = sqliteConnection.cursor()
     return linker, tokenizer, db, conn
 
 def fetch_text(doc_id, db):
