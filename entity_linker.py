@@ -72,7 +72,7 @@ def process_pred(pred, linker, tokenizer, db, conn, ent_list=None):
         
         entity = Counter(wikidata_preds).most_common(1)[0]
     
-    if ent_list == True:
+    else:
         
         predictions = linker(data_to_link)
         wikidata_preds = []
@@ -124,7 +124,7 @@ def main(
     if filter == True:
         process = partial(process_pred, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
         ent_list=entities)
-    if filter == False:
+    else:
         process = partial(process_pred, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
         ent_list=None)
 
