@@ -14,6 +14,8 @@ from functools import partial
 from tqdm import tqdm
 from tokenizers import BertWordPieceTokenizer
 
+import sqlite3
+
 EntityPrediction = namedtuple("Prediction", ['kb_id'])
 
 
@@ -22,14 +24,15 @@ def initialise(args, logger):
     linker = EntityLinker(args.model_path, logger)
     tokenizer = BertWordPieceTokenizer('vocab.txt', lowercase=True)
     db = DocDB(args.dbpath)
-
-    return linker, tokenizer, db
+    conn = sqlite3.connect(args.idpath)
+    cursor = sqliteConnection.cursor()
+    return linker, tokenizer, db, conn
 
 def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
 
 
-def process_pred(pred, linker, tokenizer, db):
+def process_pred(pred, linker, tokenizer, db, conn, ent_list=None):
     query = pred['query']
     span = pred['span']
     docids = pred['docs']
@@ -57,16 +60,44 @@ def process_pred(pred, linker, tokenizer, db):
         }
         data_to_link.append(d)
 
+    if ent_list == None:
+        predictions = linker(data_to_link)
 
-    predictions = linker(data_to_link)
+        predictions = [pred[0] for pred in predictions]
+        wikidata_preds = []
+        for pred in predictions:
+            sql_query = "select wikidata_id from mapping where wikipedia_id = {}".format(pred)
+            cursor = conn.execute(sql_query)
+            result = cursor.fetchone()[0]
+            wikidata_preds.append(result)
+        
+        entity = Counter(wikidata_preds).most_common(1)[0]
     
-    return predictions
+    if ent_list == True:
+        
+        predictions = linker(data_to_link)
+        wikidata_preds = []
+        for pred_list in predictions:
+            for pred in pred_list:
+                sql_query = "select wikidata_id from mapping where wikipedia_id = {}".format(pred)
+                cursor = conn.execute(sql_query)
+                result = cursor.fetchone()[0]
+                if result in ent_list:
+                    wikidata_preds.append(result)
+                    break
+        
+        entity = Counter(wikidata_preds).most_common(1)[0]
+    
+    return entity
 
 def main(
         preds: str = typer.Argument(..., help="Path to file containing predicted spans"), 
         outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
         model_path: str = typer.Argument(..., help="Path to file containing entity linking model"), 
-        dbpath: str = typer.Argument(..., help="Path to SQLite database"),
+        dbpath: str = typer.Argument(..., help="Path to SQLite database of documents"),
+        idpath: str = typer.Argument(..., help="Path to SQLite database of ids"),
+        filter: bool = typer.Option(True, help="Whether to filter out entities not in KB"),
+        entitypath: str = typer.Option('entities.jsonl', help="Path to entity file"),
         logfile: str = typer.Option('entity_linker.log', help="Path to log file")
     ):
 
@@ -80,11 +111,23 @@ def main(
     logger.info(args)
 
     # initialise reader and DocDB
-    linker, tokenizer, db = initialise(args, logger)
+    linker, tokenizer, db, conn = initialise(args, logger)
     logger.info('Finished initialisation')
 
+    # load entity file
+    entities=set()
+    with open(entitypath) as json_file:
+        for line in json_file:
+            dat = json.loads(line)
+            entities.add(dat["id"])
+
     # define processing function
-    process = partial(process_pred, linker=linker, tokenizer=tokenizer, db=db)
+    if filter == True:
+        process = partial(process_pred, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
+        ent_list=entities)
+    if filter == False:
+        process = partial(process_pred, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
+        ent_list=None)
 
     # define output filename
     outfilename = os.path.splitext(os.path.basename(preds))[0] + "-entity.preds"
@@ -98,7 +141,7 @@ def main(
                 entities = []
                 for result in lst_of_results:
                     ent = process(result)
-                    entities.append(ent[0])
+                    entities.append(ent)
                 prediction = {'entities': entities}
                 json.dump(prediction, outfile)
                 outfile.write("\n")
