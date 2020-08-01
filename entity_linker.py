@@ -14,25 +14,21 @@ from functools import partial
 from tqdm import tqdm
 from tokenizers import BertWordPieceTokenizer
 
-import sqlite3
-
-
 
 def initialise(args, logger):
 
     linker = EntityLinker(args.model_path, logger)
     tokenizer = BertWordPieceTokenizer('vocab.txt', lowercase=True)
     db = DocDB(args.dbpath)
-    conn = sqlite3.connect(args.idpath)
-    return linker, tokenizer, db, conn
+    return linker, tokenizer, db
 
 def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
 
 
-def process_result_list(res_list, linker, tokenizer, db, conn, ent_list=None):
+def process_result_list(res_list, linker, tokenizer, db, index_map):
 
-    # query is the same for each 
+    # query is the same for each example
     query = res_list[0]['query']
     data_to_link = []
 
@@ -59,45 +55,18 @@ def process_result_list(res_list, linker, tokenizer, db, conn, ent_list=None):
                 "context_right": text[0][end:]
             }
             data_to_link.append(d)
-
-    if ent_list == None:
-        predictions = linker(data_to_link)
-
-        predictions = [pred[0] for pred in predictions]
-        wikidata_preds = []
-        for pred in predictions:
-            sql_query = "select wikidata_id from mapping where wikipedia_id = {}".format(pred)
-            cursor = conn.execute(sql_query)
-            result = cursor.fetchone()[0]
-            wikidata_preds.append(result)
-    
-    else:
+ 
         
-        predictions = linker(data_to_link)
-        wikidata_preds = []
-        for pred_list in predictions:
-            for pred in pred_list:
-                sql_query = "select wikidata_id from mapping where wikipedia_id = {}".format(pred)
-                cursor = conn.execute(sql_query)
-                result = cursor.fetchone()
-                if result is None:
-                    continue
-                else:
-                    result=result[0]
-                if result in ent_list:
-                    wikidata_preds.append(result)
-                    break
-    
-    return wikidata_preds
+    predictions = linker(data_to_link)
+    predictions = [index_map[pred[0]] for pred in predictions]
+    return predictions
 
 def main(
         preds: str = typer.Argument(..., help="Path to file containing predicted spans"), 
         outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
         model_path: str = typer.Argument(..., help="Path to file containing entity linking model"), 
         dbpath: str = typer.Argument(..., help="Path to SQLite database of documents"),
-        idpath: str = typer.Argument(..., help="Path to SQLite database of ids"),
-        filter: bool = typer.Option(True, help="Whether to filter out entities not in KB"),
-        entitypath: str = typer.Option('entities.jsonl', help="Path to entity file"),
+        index_map_path: str = typer.Argument(..., help="Path to file mapping index ids to entities"),
         logfile: str = typer.Option('entity_linker.log', help="Path to log file")
     ):
 
@@ -111,23 +80,16 @@ def main(
     logger.info(args)
 
     # initialise reader and DocDB
-    linker, tokenizer, db, conn = initialise(args, logger)
+    linker, tokenizer, db = initialise(args, logger)
     logger.info('Finished initialisation')
 
-    # load entity file
-    entities=set()
-    with open(entitypath) as json_file:
-        for line in json_file:
-            dat = json.loads(line)
-            entities.add(dat["id"])
+    # load index map file
+    with open(index_map_path) as json_file:
+        index_map = json.load(json_file)
 
     # define processing function
-    if filter == True:
-        process = partial(process_result_list, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
-        ent_list=entities)
-    else:
-        process = partial(process_result_list, linker=linker, tokenizer=tokenizer, db=db, conn=conn,
-        ent_list=None)
+    process = partial(process_result_list, linker=linker, tokenizer=tokenizer, db=db, 
+        index_map=index_map)
 
     # define output filename
     outfilename = os.path.splitext(os.path.basename(preds))[0] + "-entity.preds"
