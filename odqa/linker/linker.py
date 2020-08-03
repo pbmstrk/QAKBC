@@ -22,11 +22,11 @@ class EntityLinker:
             "entity_encoding": self.models_path+"all_entities_large.t7",
             "crossencoder_model": self.models_path+"crossencoder_wiki_large.bin",
             "crossencoder_config": self.models_path+"crossencoder_wiki_large.json",
-            "fast": False, # set this to be true if speed is a concern
+            "fast": True, # set this to be true if speed is a concern
             "output_path": "logs/", # logging directory
             "faiss_index": "flat",
-            "index_path": self.models_path+"faiss_flat_index.pkl",
-            "top_k": 1
+            "index_path": self.models_path+"index.pkl",
+            "top_k": 30
         }
 
         self.args = argparse.Namespace(**self.config)

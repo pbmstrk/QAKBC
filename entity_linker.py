@@ -11,6 +11,8 @@ from odqa.logger import set_logger
 from odqa.linker import EntityLinker
 from functools import partial
 
+from collections import OrderedDict
+
 from tqdm import tqdm
 from tokenizers import BertWordPieceTokenizer
 
@@ -18,7 +20,7 @@ from tokenizers import BertWordPieceTokenizer
 def initialise(args, logger):
 
     linker = EntityLinker(args.model_path, logger)
-    tokenizer = BertWordPieceTokenizer('vocab.txt', lowercase=True)
+    tokenizer = BertWordPieceTokenizer('bert-base-uncased-vocab.txt', lowercase=True)
     db = DocDB(args.dbpath)
     return linker, tokenizer, db
 
@@ -58,8 +60,10 @@ def process_result_list(res_list, linker, tokenizer, db, index_map):
  
         
     predictions = linker(data_to_link)
-    predictions = [index_map[pred[0]] for pred in predictions]
+    predictions = [index_map[str(pred[0])] for pred in predictions]
+    predictions = list(OrderedDict.fromkeys(predictions))
     return predictions
+
 
 def main(
         preds: str = typer.Argument(..., help="Path to file containing predicted spans"), 
