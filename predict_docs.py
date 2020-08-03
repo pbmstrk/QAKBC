@@ -1,4 +1,4 @@
-import typer
+import argparse
 import json
 import os
 
@@ -18,25 +18,13 @@ def get_class(name):
 
 def initialise(args):
 
-    retriever = get_class(args.ranker)(args.retrieverpath)
+    retriever = get_class(args.ranker)(args.retriever_path)
     return retriever
 
-def main(
-        dataset: str = typer.Argument(..., help="Path to file containing queries"), 
-        outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
-        ranker: str = typer.Argument(..., help="Ranker to use"), 
-        retrieverpath: str = typer.Argument(..., help="Path to retriever"),
-        ndocs: int = typer.Option(30, help="Number of documents to retrieve"),
-        logfile: str = typer.Option('predict_docs.log', help="Path to log file")
-    ):
-
-    # set up args datastructure
-    args_dict = locals()
-    ArgsClass = namedtuple('args', sorted(args_dict))
-    args = ArgsClass(**args_dict)
+def main(args):
 
     # set up logging
-    logger = set_logger(logfile)
+    logger = set_logger(args.log_file)
 
     logger.info(args)
 
@@ -46,13 +34,13 @@ def main(
 
     # open the dataset of queries
     queries = []
-    for line in open(dataset):
+    for line in open(args.data):
         data = json.loads(line)
         queries.append(data['question'])
 
     # get file name to save predictions to
-    basename = os.path.splitext(os.path.basename(dataset))[0]
-    outfile = os.path.join(outdir, basename + '.pdocs')
+    basename = os.path.splitext(os.path.basename(args.data))[0]
+    outfile = os.path.join(args.output_dir, basename + '.pdocs')
     logger.info("Saving to {}".format(outfile))
 
     # retrieve predictions in batches
@@ -62,7 +50,7 @@ def main(
         for i, batch in enumerate(batches):
             # remove this line later
             logger.info('Retrieving results')
-            results = retriever.batch_closest_docs(batch, k=ndocs)
+            results = retriever.batch_closest_docs(batch, k=args.n_docs)
             logger.info('Writing')
             for result in tqdm(results):
                 doc_ids = result[0]
@@ -75,4 +63,65 @@ def main(
 
 if __name__ == '__main__':
 
-    typer.run(main)
+    parser = argparse.ArgumentParser()
+
+    # Required parameters
+    parser.add_argument(
+        "--data",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to file containing queries",
+    )
+
+    parser.add_argument(
+        "--output_dir",
+        default=None,
+        type=str,
+        required=True,
+        help="The output directory where predictions will be written",
+    )
+
+    parser.add_argument(
+        "--ranker",
+        default=None,
+        type=str,
+        required=True,
+        choices=["bm25", "tfidf"],
+        help="Ranker to use for document retrieval",
+    )
+
+    parser.add_argument(
+        "--retriever_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to retriever model",
+    )
+
+    parser.add_argument(
+        "--db_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to SQLite DB",
+    )
+
+    parser.add_argument(
+        "--n_docs",
+        default=30,
+        type=int,
+        help="Number of documents to retrieve",
+    )
+
+    parser.add_argument(
+        "--log_file",
+        default="predict_docs.log",
+        type=str,
+        help="Path to log file",
+    )
+
+    args = parser.parse_args()
+
+    main(args)
+

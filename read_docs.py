@@ -1,4 +1,4 @@
-import typer
+import argparse
 import json
 import os
 import torch
@@ -14,7 +14,6 @@ from odqa.retriever import DocDB
 from odqa.reader import get_predictions
 
 from transformers import BertModel, BertTokenizer
-
 
 
 class ReaderDataset(data.Dataset):
@@ -62,40 +61,29 @@ def initialise(args):
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     encoder = BertModel.from_pretrained('bert-base-uncased')
-    
+  
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     reader = Reader(encoder, 768).to(device)
 
-    reader.load_state_dict(torch.load(args.checkpointfile, map_location=device))
+    reader.load_state_dict(torch.load(args.model_path, map_location=device))
 
-    db = DocDB(args.dbpath)
+    db = DocDB(args.db_path)
 
     return tokenizer, reader, db, device
 
-def main(
-        docs: str = typer.Argument(..., help="Path to file containing predicted documents"), 
-        outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
-        checkpointfile: str = typer.Argument(..., help="Path to file containing model checkpoint"), 
-        dbpath: str = typer.Argument(..., help="Path to SQLite database"),
-        logfile: str = typer.Option('read_docs.log', help="Path to log file")
-    ):
-
-    # set up args datastructure
-    args_dict = locals()
-    ArgsClass = namedtuple('args', sorted(args_dict))
-    args = ArgsClass(**args_dict)
+def main(args):
 
     # set up logger
-    logger = set_logger(logfile)
+    logger = set_logger(args.log_file)
 
     # initialise models
     tokenizer, reader, db, device = initialise(args)
     logger.info('Finished initialisation')
 
     # set output name
-    basename = os.path.splitext(os.path.basename(docs))[0]
-    outfile = os.path.join(outdir, basename + '-' +
-                           os.path.splitext(os.path.basename(checkpointfile))[0] + '.preds')
+    basename = os.path.splitext(os.path.basename(args.docs))[0]
+    outfile = os.path.join(args.output_dir, basename + '-' +
+                           os.path.splitext(os.path.basename(args.model_path))[0] + '.preds')
     logger.info('Output file: {}'.format(outfile))
 
     # read in data
@@ -104,12 +92,12 @@ def main(
     all_doc_scores = []
     queries = []
 
-    for line in open(docs):
+    for line in open(args.docs):
         dat = json.loads(line)
         all_doc_ids.append(dat['doc_ids'])
         all_doc_scores.append(dat['doc_scores'])
         queries.append(dat['query'])
-    
+  
     # read documents
     logger.info("Reading..")
     collate_fn = partial(generate_batch, db=db, tokenizer=tokenizer)
@@ -138,4 +126,48 @@ def main(
 
 if __name__ == '__main__':
 
-    typer.run(main)
+    parser = argparse.ArgumentParser()
+
+    # Required parameters
+    parser.add_argument(
+        "--docs",
+        default=None,
+        type=str,
+        required=True,
+        help=".pdocs file containing predicted documents",
+    )
+
+    parser.add_argument(
+        "--output_dir",
+        default=None,
+        type=str,
+        required=True,
+        help="The output directory where predictions will be written",
+    )
+
+    parser.add_argument(
+        "--model_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to trained model",
+    )
+
+    parser.add_argument(
+        "--db_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to SQLite DB",
+    )
+
+    parser.add_argument(
+        "--log_file",
+        default="read_docs.log",
+        type=str,
+        help="Path to log file",
+    )
+
+    args = parser.parse_args()
+
+    main(args)

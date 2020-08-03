@@ -2,16 +2,15 @@ import ast
 import os
 import json
 
-import typer
+import argparse
 from collections import namedtuple
-from collections import Counter
+from collections import Counter, OrderedDict
 
 from odqa.retriever import DocDB
 from odqa.logger import set_logger
 from odqa.linker import EntityLinker
 from functools import partial
 
-from collections import OrderedDict
 
 from tqdm import tqdm
 from tokenizers import BertWordPieceTokenizer
@@ -21,7 +20,7 @@ def initialise(args, logger):
 
     linker = EntityLinker(args.model_path, logger)
     tokenizer = BertWordPieceTokenizer('bert-base-uncased-vocab.txt', lowercase=True)
-    db = DocDB(args.dbpath)
+    db = DocDB(args.db_path)
     return linker, tokenizer, db
 
 def fetch_text(doc_id, db):
@@ -65,22 +64,11 @@ def process_result_list(res_list, linker, tokenizer, db, index_map):
     return predictions
 
 
-def main(
-        preds: str = typer.Argument(..., help="Path to file containing predicted spans"), 
-        outdir: str = typer.Argument(..., help="Output directory for prediction file"), 
-        model_path: str = typer.Argument(..., help="Path to file containing entity linking model"), 
-        dbpath: str = typer.Argument(..., help="Path to SQLite database of documents"),
-        index_map_path: str = typer.Argument(..., help="Path to file mapping index ids to entities"),
-        logfile: str = typer.Option('entity_linker.log', help="Path to log file")
-    ):
+def main(args):
 
-    # set up args datastructure
-    args_dict = locals()
-    ArgsClass = namedtuple('args', sorted(args_dict))
-    args = ArgsClass(**args_dict)
 
     # set up logger
-    logger = set_logger(logfile)
+    logger = set_logger(args.log_file)
     logger.info(args)
 
     # initialise reader and DocDB
@@ -88,7 +76,7 @@ def main(
     logger.info('Finished initialisation')
 
     # load index map file
-    with open(index_map_path) as json_file:
+    with open(args.index_map_path) as json_file:
         index_map = json.load(json_file)
 
     # define processing function
@@ -96,8 +84,8 @@ def main(
         index_map=index_map)
 
     # define output filename
-    outfilename = os.path.splitext(os.path.basename(preds))[0] + "-entity.preds"
-    outfilepath = outdir + "/" + outfilename
+    outfilename = os.path.splitext(os.path.basename(args.preds))[0] + "-entity.preds"
+    outfilepath = args.output_dir + "/" + outfilename
 
     # predict entities
     with open(outfilepath, 'w') as outfile:
@@ -111,7 +99,60 @@ def main(
 
 if __name__ == '__main__':
 
-    typer.run(main)
+    parser = argparse.ArgumentParser()
+
+    # Required parameters
+    parser.add_argument(
+        "--preds",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to .preds file containing span predicitons",
+    )
+
+    parser.add_argument(
+        "--output_dir",
+        default=None,
+        type=str,
+        required=True,
+        help="The output directory where predictions will be written",
+    )
+
+    parser.add_argument(
+        "--model_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to trained model",
+    )
+
+    parser.add_argument(
+        "--db_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to SQLite DB",
+    )
+
+    parser.add_argument(
+        "--index_map_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to file mapping index ids to entities",
+    )
+
+    parser.add_argument(
+        "--log_file",
+        default="entity_linker.log",
+        type=str,
+        help="Path to log file",
+    )
+
+    args = parser.parse_args()
+
+    main(args)
+
                 
 
 
