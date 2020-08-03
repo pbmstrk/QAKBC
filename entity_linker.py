@@ -66,10 +66,9 @@ def process_result_list(res_list, linker, tokenizer, db, index_map):
 
 def main(args):
 
-
     # set up logger
     logger = set_logger(args.log_file)
-    logger.info(args)
+    logger.info('Arguments: %s' % str(args))
 
     # initialise reader and DocDB
     linker, tokenizer, db = initialise(args, logger)
@@ -89,7 +88,7 @@ def main(args):
 
     # predict entities
     with open(outfilepath, 'w') as outfile:
-        with open(preds, 'r') as pred_file:
+        with open(args.preds, 'r') as pred_file:
             for line in tqdm(pred_file):
                 lst_of_results = ast.literal_eval(line)
                 entities = process(lst_of_results)

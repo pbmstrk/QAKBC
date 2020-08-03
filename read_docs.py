@@ -75,6 +75,7 @@ def main(args):
 
     # set up logger
     logger = set_logger(args.log_file)
+    logger.info('Arguments: %s' % str(args))
 
     # initialise models
     tokenizer, reader, db, device = initialise(args)

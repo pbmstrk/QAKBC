@@ -25,8 +25,7 @@ def main(args):
 
     # set up logging
     logger = set_logger(args.log_file)
-
-    logger.info(args)
+    logger.info('Arguments: %s' % str(args))
 
     # initialise retriever
     logger.info("Initialising retriever")
