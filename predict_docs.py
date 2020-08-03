@@ -70,6 +70,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="Path to file containing queries",
     )
 
@@ -78,6 +79,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="The output directory where predictions will be written",
     )
 
@@ -95,6 +97,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="Path to retriever model",
     )
 
@@ -103,6 +106,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="Path to SQLite DB",
     )
 
@@ -110,6 +114,7 @@ if __name__ == '__main__':
         "--n_docs",
         default=30,
         type=int,
+        metavar='\b',
         help="Number of documents to retrieve",
     )
 
@@ -117,6 +122,7 @@ if __name__ == '__main__':
         "--log_file",
         default="predict_docs.log",
         type=str,
+        metavar='\b',
         help="Path to log file",
     )
 

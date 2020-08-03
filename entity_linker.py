@@ -106,6 +106,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="Path to .preds file containing span predicitons",
     )
 
@@ -114,6 +115,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="The output directory where predictions will be written",
     )
 
@@ -122,6 +124,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="Path to trained model",
     )
 
@@ -130,6 +133,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="Path to SQLite DB",
     )
 
@@ -138,6 +142,7 @@ if __name__ == '__main__':
         default=None,
         type=str,
         required=True,
+        metavar='\b',
         help="Path to file mapping index ids to entities",
     )
 
@@ -145,6 +150,7 @@ if __name__ == '__main__':
         "--log_file",
         default="entity_linker.log",
         type=str,
+        metavar='\b',
         help="Path to log file",
     )
 
