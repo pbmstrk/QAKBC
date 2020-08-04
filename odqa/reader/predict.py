@@ -26,7 +26,7 @@ def get_predictions(batch_inputs, model_outputs, tokenizer,
     for i in range(B):
         sorted_logits = all_sorted_logits[i]  # shape: [D*L*L]
         sorted_idx = all_sorted_idx[i]
-        tokens = [tokenizer.convert_ids_to_tokens(ids) for ids in batch_inputs['input_ids'][i]]
+        ids = batch_inputs['input_ids'][i]
 
         nbest_predictions = []
         for logit, idx in zip(sorted_logits, sorted_idx):
@@ -44,8 +44,8 @@ def get_predictions(batch_inputs, model_outputs, tokenizer,
                 continue
 
             # Get the token span and convert it back to text
-            span_tokens = tokens[passage_idx][start_idx:end_idx + 1]
-            span_text = tokenizer.convert_tokens_to_string(span_tokens)
+            span_ids = ids[passage_idx][start_idx:end_idx + 1]
+            span_text = tokenizer.decode(span_ids)
             nbest_predictions.append(Prediction(text=span_text, prob=math.exp(logit), passage_idx=[passage_idx],
             start_idx=[start_idx], end_idx=[end_idx]))
 
