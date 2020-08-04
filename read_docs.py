@@ -48,14 +48,17 @@ def generate_batch(batch, db, tokenizer):
 
     encoding = tokenizer(raw_inputs, padding=True,
                                   truncation="only_second",
-                                  return_tensors="pt")
+                                  return_tensors="pt",
+                                  return_special_tokens_mask=True)
+
+    special_tokens_mask = encoding['special_tokens_mask'].unsqueeze(0)
 
     inputs = {
         'input_ids': encoding['input_ids'].unsqueeze(0),
         'attention_mask': encoding['attention_mask'].unsqueeze(0)
     }
 
-    return inputs, docids, query
+    return inputs, docids, query, special_tokens_mask
 
 def initialise(args):
 
@@ -109,7 +112,7 @@ def main(args):
 
     with open(outfile, 'w') as f:
 
-        for batch, docids, query in tqdm(data_generator, total=len(queries)):
+        for batch, docids, query, sp_mask in tqdm(data_generator, total=len(queries)):
 
             for key in batch.keys():
                 batch[key] = batch[key].to(device)
@@ -117,7 +120,7 @@ def main(args):
             with torch.no_grad():
                 model_outputs = reader(**batch)
 
-            predictions = get_predictions(batch, model_outputs, tokenizer)[0]
+            predictions = get_predictions(batch, sp_mask, model_outputs, tokenizer)[0]
             preds = [{'query': query, 'span': pred.text, 'score': pred.prob, 'docs': [docids[int(passage)] for passage in pred.passage_idx], 
                 'start_idx': [int(idx) for idx in pred.start_idx], 'end_idx': [int(idx) for idx in pred.end_idx]} for pred in predictions]
 

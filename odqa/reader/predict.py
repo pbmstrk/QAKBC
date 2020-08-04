@@ -1,11 +1,12 @@
 from collections import namedtuple
 import torch
 import math
+import numpy as np
 
 
 Prediction = namedtuple('Prediction', ['text', 'prob', 'passage_idx', 'start_idx', 'end_idx'])
 
-def get_predictions(batch_inputs, model_outputs, tokenizer,
+def get_predictions(batch_inputs, special_tokens_mask, model_outputs, tokenizer,
                     max_answer_length=10, n_best_size=30, aggregation='sum'):
     """ Post-processing of the model output to produce the final answer result. """
     start_logits, end_logits, cls_logits = model_outputs  # shape: [B,D,L], [B,D,L], [B,D]
@@ -27,6 +28,7 @@ def get_predictions(batch_inputs, model_outputs, tokenizer,
         sorted_logits = all_sorted_logits[i]  # shape: [D*L*L]
         sorted_idx = all_sorted_idx[i]
         ids = batch_inputs['input_ids'][i]
+        sp_mask = special_tokens_mask[i].cpu().detach().numpy()
 
         nbest_predictions = []
         for logit, idx in zip(sorted_logits, sorted_idx):
@@ -34,6 +36,11 @@ def get_predictions(batch_inputs, model_outputs, tokenizer,
             passage_offset = idx % (L * L)
             start_idx = passage_offset // L
             end_idx = passage_offset % L
+
+            sp_id = np.where(sp_mask[passage_idx] == 1)[0][1]
+
+            if start_idx < sp_id:
+                continue
 
             if end_idx < start_idx or end_idx - start_idx + 1 > max_answer_length:
                 continue
