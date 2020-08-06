@@ -27,7 +27,7 @@ def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
 
 
-def process_result_list(res_list, linker, tokenizer, db, index_map):
+def process_result_list(res_list, linker, tokenizer, db, index_map, logger=None):
 
     # query is the same for each example
     query = res_list[0]['query']
@@ -35,6 +35,7 @@ def process_result_list(res_list, linker, tokenizer, db, index_map):
 
     for pred in res_list:
         docids = pred['docs']
+        span = pred['span']
         start_idx = pred['start_idx']
         end_idx = pred['end_idx']
 
@@ -43,17 +44,21 @@ def process_result_list(res_list, linker, tokenizer, db, index_map):
         doctexts = map(partial(fetch_text, db=db), list(docids))
         
         for i, text in enumerate(doctexts):
+            text = tokenizer.decode(tokenizer.encode(text[0], add_special_tokens = False).ids) 
             ids = idx[i]
-            encoding = tokenizer.encode(query, text[0])
+            encoding = tokenizer.encode(query, text)
             start = encoding.token_to_chars(ids[0])[0]
+            #if ids[1] >= len(encoding.tokens):
+            #    end = encoding.token_to_chars(len(encoding.tokens)-2)[1]
+            #else:
             end = encoding.token_to_chars(ids[1])[1]
             d = {
                 "id": 0,
                 "label": "unknown",
                 "label_id": -1,
-                "context_left": text[0][:start].lower(),
-                "mention": text[0][start:end],
-                "context_right": text[0][end:]
+                "context_left": text[:start].lower(),
+                "mention": text[start:end].lower(),
+                "context_right": text[end:].lower()
             }
             data_to_link.append(d)
  
@@ -80,7 +85,7 @@ def main(args):
 
     # define processing function
     process = partial(process_result_list, linker=linker, tokenizer=tokenizer, db=db, 
-        index_map=index_map)
+        index_map=index_map, logger=logger)
 
     # define output filename
     outfilename = os.path.splitext(os.path.basename(args.preds))[0] + "-entity.preds"
