@@ -156,7 +156,7 @@ if __name__ == '__main__':
         default="entity_linker.log",
         type=str,
         metavar='\b',
-        help="Path to log file",
+        help="Path to log file (default: %(default)s)",
     )
 
     args = parser.parse_args()
