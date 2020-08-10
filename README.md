@@ -1,32 +1,25 @@
-# ODQA (Open-domain question answering)
+# QAKBC: Open-Domain Question Answering for Knowledge Base Completion
 
-The code in this repository is based on the [DrQA](https://github.com/facebookresearch/DrQA) implementation (see the LICENSE file in the repository). In particular, the retrieval and tokenizer modules are used with slight modifications (adding a BM25 retriever).
-
-Approach to open-domain question answering is divided in two step:
-- retrieval: using either TF-IDF or BM25
-- reading: using BERT
-
-The code only supports predictions, however, any question answering model that is supported by [huggingface](https://github.com/huggingface/transformers) can be used for the machine comprehension component. 
-
-Prediction can either be completed in one step using `predict.py` or in two stages using `predict_docs.py` for retrieval and `read_docs.py` for reading.
+Approach to open-domain question answering for knowledge base completion is divided in three steps:
+- retrieval: either TF-IDF or BM25
+- reading: BERT
+- entity linking: BLINK
 
 ## Retrieval
 
 ```
-Usage: predict_docs.py [OPTIONS] DATASET OUTDIR RANKER RETRIEVERPATH
+usage: predict_docs.py [-h] --data --output_dir --ranker {bm25,tfidf} --retriever_path --db_path [--n_docs] [--log_file]
 
-Arguments:
-  DATASET        Path to file containing queries  [required]
-  OUTDIR         Output directory for prediction file  [required]
-  RANKER         Ranker to use  [required]
-  RETRIEVERPATH  Path to retriever  [required]
-
-Options:
-  --ndocs INTEGER                 Number of documents to retrieve  [default:
-                                  30]
-
-  --logfile TEXT                  Path to log file  [default:
-                                  predict_docs.log]
+optional arguments:
+  -h, --help            show this help message and exit
+  --data              Path to file containing queries
+  --output_dir        The output directory where predictions will be written
+  --ranker {bm25,tfidf}
+                        Ranker to use for document retrieval
+  --retriever_path    Path to retriever model
+  --db_path           Path to SQLite DB
+  --n_docs            Number of documents to retrieve (default: 30)
+  --log_file          Path to log file (default: predict_docs.log)
 ```
 
 `predict_docs.py` creates a `.preds` file  with the questions and the top `ndocs` referenced by their ID in the SQLite database.
@@ -34,30 +27,29 @@ Options:
 ## Reading
 
 ```
-Usage: read_docs.py [OPTIONS] DOCS OUTDIR CHECKPOINTFILE DBPATH
+usage: read_docs.py [-h] --docs --output_dir --model_path --db_path [--log_file]
 
-Arguments:
-  DOCS            Path to file containing predicted documents  [required]
-  OUTDIR          Output directory for prediction file  [required]
-  CHECKPOINTFILE  Path to file containing model checkpoint  [required]
-  DBPATH          Path to SQLite database  [required]
-
-Options:
-  --logfile TEXT                  Path to log file  [default: read_docs.log]
+optional arguments:
+  -h, --help      show this help message and exit
+  --docs        File containing predicted documents
+  --output_dir  The output directory where predictions will be written
+  --model_path  Path to trained model
+  --db_path     Path to SQLite DB
+  --log_file    Path to log file (default: read_docs.log)
 ```
 ## Entity Linking
 
 ```
-Usage: entity_linker.py [OPTIONS] PREDS OUTDIR MODEL_PATH DBPATH
+usage: entity_linker.py [-h] --preds --output_dir --model_path --db_path --index_map_path [--log_file]
 
-Arguments:
-  PREDS       Path to file containing predicted spans  [required]
-  OUTDIR      Output directory for prediction file  [required]
-  MODEL_PATH  Path to file containing entity linking model  [required]
-  DBPATH      Path to SQLite database  [required]
-
-Options:
-  --logfile TEXT                  Path to log file  [default:
-                                  entity_linker.log]
+optional arguments:
+  -h, --help          show this help message and exit
+  --preds           Path to .preds file containing span predicitons
+  --output_dir      The output directory where predictions will be written
+  --model_path      Path to trained model
+  --db_path         Path to SQLite DB
+  --index_map_path  Path to file mapping index ids to entities
+  --log_file        Path to log file (default: entity_linker.log)
 ```
+
 

@@ -38,8 +38,12 @@ def get_predictions(batch_inputs, special_tokens_mask, model_outputs, tokenizer,
             end_idx = passage_offset % L
 
             sp_id = np.where(sp_mask[passage_idx] == 1)[0][1]
+            end_tok_id = np.where(sp_mask[passage_idx] == 1)[0][2]
 
-            if start_idx < sp_id:
+            if start_idx <= sp_id:
+                continue
+
+            if end_idx >= end_tok_id:
                 continue
 
             if end_idx < start_idx or end_idx - start_idx + 1 > max_answer_length:

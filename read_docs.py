@@ -139,7 +139,7 @@ if __name__ == '__main__':
         type=str,
         required=True,
         metavar='\b',
-        help=".pdocs file containing predicted documents",
+        help="File containing predicted documents",
     )
 
     parser.add_argument(
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         default="read_docs.log",
         type=str,
         metavar='\b',
-        help="Path to log file",
+        help="Path to log file (default: %(default)s)",
     )
 
     args = parser.parse_args()

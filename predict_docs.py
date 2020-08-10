@@ -115,7 +115,7 @@ if __name__ == '__main__':
         default=30,
         type=int,
         metavar='\b',
-        help="Number of documents to retrieve",
+        help="Number of documents to retrieve (default: %(default)s)",
     )
 
     parser.add_argument(
@@ -123,7 +123,7 @@ if __name__ == '__main__':
         default="predict_docs.log",
         type=str,
         metavar='\b',
-        help="Path to log file",
+        help="Path to log file (default: %(default)s)",
     )
 
     args = parser.parse_args()
