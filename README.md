@@ -1,6 +1,6 @@
-# QAKBC: Open-Domain Question Answering for Knowledge Base Completion
+# QAKGC: Open-Domain Question Answering for Knowledge Graph Completion
 
-Approach to open-domain question answering for knowledge base completion is divided in three steps:
+Approach to open-domain question answering for knowledge graph completion is divided in three steps:
 - retrieval: either TF-IDF or BM25
 - reading: BERT
 - entity linking: BLINK
