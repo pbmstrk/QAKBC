@@ -84,7 +84,9 @@ def has_answer(answer, doc_id, match):
 
 def get_score(answer_doc, match):
     """Search through all the top docs to see if they have the answer."""
-    answer, (doc_ids, doc_scores) = answer_doc
+    answer, doc_ids = answer_doc
+    #print("Answer: {}".format(answer))
+    #print("List of doc_ids: {}".format(doc_ids))
     for doc_id in doc_ids:
         if has_answer(answer, doc_id, match):
             return 1
@@ -137,9 +139,10 @@ def eval(args):
         questions.append(question)
         answers.append(answer)
 
+    closest_docs = []
     for line in open(args.predictions):
         data = json.loads(line)
-        closest_docs = data['doc_ids']
+        closest_docs.append(data['doc_ids'])
 
     answers_docs = zip(answers, closest_docs)
 
@@ -177,7 +180,6 @@ def eval(args):
     )
     print(stats)
 
-    del ranker
     processes.close()
     processes.terminate()
 

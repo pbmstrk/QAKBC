@@ -1,4 +1,5 @@
 import ast
+import re
 import os
 import json
 
@@ -27,6 +28,10 @@ def fetch_text(doc_id, db):
     return db.get_doc_text(doc_id)
 
 
+def white_space_fix(text):
+    return re.sub(r"\s+", "", text) 
+
+
 def process_result_list(res_list, linker, tokenizer, db, index_map, logger=None):
 
     # query is the same for each example
@@ -44,8 +49,8 @@ def process_result_list(res_list, linker, tokenizer, db, index_map, logger=None)
         doctexts = map(partial(fetch_text, db=db), list(docids))
         
         for i, text in enumerate(doctexts):
-            text = tokenizer.decode(tokenizer.encode(text[0], add_special_tokens = False).ids) 
             ids = idx[i]
+            text = text[0]
             encoding = tokenizer.encode(query, text)
             start = encoding.token_to_chars(ids[0])[0]
             #if ids[1] >= len(encoding.tokens):
@@ -62,7 +67,9 @@ def process_result_list(res_list, linker, tokenizer, db, index_map, logger=None)
             }
             data_to_link.append(d)
  
-        
+            if white_space_fix(span) != white_space_fix(d['mention']):
+                logger.info("Mismatch! Span: {} \t Match: {}".format(white_space_fix(span), white_space_fix(d['mention'])))
+
     predictions = linker(data_to_link)
     predictions = [index_map[str(pred[0])] for pred in predictions]
     predictions = list(OrderedDict.fromkeys(predictions))
