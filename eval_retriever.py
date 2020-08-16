@@ -142,7 +142,7 @@ def eval(args):
     closest_docs = []
     for line in open(args.predictions):
         data = json.loads(line)
-        closest_docs.append(data['doc_ids'])
+        closest_docs.append(data['doc_ids'][:args.n_docs])
 
     answers_docs = zip(answers, closest_docs)
 
