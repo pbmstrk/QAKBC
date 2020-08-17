@@ -62,7 +62,7 @@ def has_answer(answer, doc_id, match):
     If `match` is regex, we search the whole text with the regex.
     """
     global PROCESS_DB, PROCESS_TOK
-    text = PROCESS_DB.get_doc_text(doc_id)
+    text = PROCESS_DB.get_doc_text(doc_id)[0]
     text = utils.normalize(text)
     if match == 'string':
         # Answer is a list of possible strings

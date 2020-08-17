@@ -1,6 +1,6 @@
 import argparse
 import json
-from odqa.logger import set_logger
+from qakgc.logger import set_logger
 
 def hits_at_k(preds, ans, k):
     """accepts list of predictions and answers"""
