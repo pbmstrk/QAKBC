@@ -120,7 +120,7 @@ def main(args):
             with torch.no_grad():
                 model_outputs = reader(**batch)
 
-            predictions = get_predictions(batch, sp_mask, model_outputs, tokenizer, max_answer_length=args.max_answer_length)[0]
+            predictions = get_predictions(batch, sp_mask, model_outputs, tokenizer, max_answer_length=args.max_answer_length)[0][:30]
             preds = [{'query': query, 'span': pred.text, 'score': pred.prob, 'docs': [docids[int(passage)] for passage in pred.passage_idx], 
                 'start_idx': [int(idx) for idx in pred.start_idx], 'end_idx': [int(idx) for idx in pred.end_idx]} for pred in predictions]
 

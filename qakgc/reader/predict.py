@@ -7,7 +7,7 @@ import numpy as np
 Prediction = namedtuple('Prediction', ['text', 'prob', 'passage_idx', 'start_idx', 'end_idx'])
 
 def get_predictions(batch_inputs, special_tokens_mask, model_outputs, tokenizer,
-                    max_answer_length=10, n_best_size=30, aggregation='sum'):
+                    max_answer_length=10, n_best_size=60, aggregation='sum'):
     """ Post-processing of the model output to produce the final answer result. """
     start_logits, end_logits, cls_logits = model_outputs  # shape: [B,D,L], [B,D,L], [B,D]
 
