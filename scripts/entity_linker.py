@@ -71,9 +71,18 @@ def process_result_list(res_list, linker, tokenizer, db, index_map, logger=None)
                 logger.info("Mismatch! Span: {} \t Match: {}".format(white_space_fix(span), white_space_fix(d['mention'])))
 
     predictions = linker(data_to_link)
-    predictions = [index_map[str(pred[0])] for pred in predictions]
-    predictions = list(OrderedDict.fromkeys(predictions))
+    predictions = process_predictions(predictions, index_map)
     return predictions
+
+def process_predictions(predictions, index_map):
+
+    results = []
+    for lst in predictions:
+        for el in lst:
+            if index_map[str(el)] not in results:
+                results.append(index_map[str(el)])
+
+    return results
 
 
 def main(args):
