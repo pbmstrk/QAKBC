@@ -81,6 +81,7 @@ def process_predictions(predictions, index_map):
         for el in lst:
             if index_map[str(el)] not in results:
                 results.append(index_map[str(el)])
+                break
 
     return results
 
