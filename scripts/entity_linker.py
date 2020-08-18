@@ -6,6 +6,7 @@ import json
 import argparse
 from collections import namedtuple
 from collections import Counter, OrderedDict
+from itertools import zip_longest
 
 from qakgc.retriever import DocDB
 from qakgc.logger import set_logger
@@ -76,13 +77,10 @@ def process_result_list(res_list, linker, tokenizer, db, index_map, logger=None)
 
 def process_predictions(predictions, index_map):
 
-    results = []
-    for lst in predictions:
-        for el in lst:
-            if index_map[str(el)] not in results:
-                results.append(index_map[str(el)])
-                break
 
+    results = [item for sublist in list(zip_longest(*predictions)) for item in sublist if item]
+
+    results = [index_map[str(pred)] for pred in predictions]
     return results
 
 
