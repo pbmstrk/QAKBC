@@ -80,7 +80,8 @@ def process_predictions(predictions, index_map):
 
     results = [item for sublist in list(zip_longest(*predictions)) for item in sublist if item]
 
-    results = [index_map[str(pred)] for pred in predictions]
+    results = [index_map[str(pred)] for pred in results]
+    results = list(OrderedDict.fromkeys(results))
     return results
 
 
