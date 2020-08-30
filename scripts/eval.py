@@ -11,6 +11,18 @@ def hits_at_k(preds, ans, k):
 
     return any_in(preds_k, ans)
 
+def reciprocal_rank(preds, ans):
+
+    reciprocal_rank = []
+    for answer in ans:
+        try:
+            r_rank = 1/(preds.index(answer)+1)
+        except ValueError:
+            r_rank = 0
+
+        reciprocal_rank.append(r_rank)
+    return max(reciprocal_rank)
+
 
 def evaluate(dataset_file, prediction_file, map_file, k):
 
@@ -20,6 +32,7 @@ def evaluate(dataset_file, prediction_file, map_file, k):
             data = json.loads(line)
             answer = [data['entity']]
             answers.append(answer)
+
     
     if map_file:
         with open(map_file) as mf:
@@ -35,13 +48,17 @@ def evaluate(dataset_file, prediction_file, map_file, k):
             predictions.append(preds)
 
     score = 0
+    rr = 0
     for i in range(len(predictions)):
         score += hits_at_k(predictions[i], answers[i], k)
+        rr += reciprocal_rank(predictions[i], answers[i])
 
     total = len(predictions)
     hitsk = 100.0 * score / total
+    rr = rr / total
     logger.info({'Hits@{}'.format(k): hitsk})
-
+    logger.info({"MRR": rr})
+    
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()

@@ -41,8 +41,12 @@ def generate_batch(batch, db, tokenizer):
     query = batch[0][0]
     docids = list(set(batch[0][1]))
 
-    doctexts = map(partial(fetch_text, db=db), docids)
-    doctexts = [text[0] for text in doctexts]
+    if docids == []:
+        doctexts = ["pass"]
+        docids = ["pass"]
+    else:
+        doctexts = map(partial(fetch_text, db=db), docids)
+        doctexts = [text[0] for text in doctexts]
     
     raw_inputs = [(query, doctext) for doctext in doctexts]
 
