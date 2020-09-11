@@ -1,5 +1,9 @@
 # QAKGC: Open-Domain Question Answering for Knowledge Graph Completion
 
+### Repository for my UCL MSc Thesis, 2020.
+
+<p align="center"><img width="60%" src="img/motivation.png" /></p>
+
 Approach to open-domain question answering for knowledge graph completion is divided in three steps:
 - retrieval: either TF-IDF or BM25
 - reading: BERT
